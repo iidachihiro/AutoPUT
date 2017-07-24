@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>jp.mzw</groupId>
+    <artifactId>TestReadabilityImprover</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.13</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.6</version>
+        </dependency>
+
+        <!-- Use latest Eclipse JDT (AST parser) -->
+        <dependency>
+            <groupId>eclipse.jdt.core</groupId>
+            <artifactId>org.eclipse.jdt.core</artifactId>
+            <version>3.13.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.jdt.core-3.13.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>eclipse.platform.runtime</groupId>
+            <artifactId>org.eclipse.core.runtime</artifactId>
+            <version>3.13.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.core.runtime-3.13.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>eclipse.platform.resources</groupId>
+            <artifactId>org.eclipse.core.resources</artifactId>
+            <version>3.12.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.core.resources-3.12.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>eclipse.platform.runtime</groupId>
+            <artifactId>org.eclipse.core.jobs</artifactId>
+            <version>3.9.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.core.jobs-3.9.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>eclipse.platform.runtime</groupId>
+            <artifactId>org.eclipse.core.contenttype</artifactId>
+            <version>3.6.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.core.contenttype-3.6.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>rt.equinox.framework</groupId>
+            <artifactId>org.eclipse.osgi</artifactId>
+            <version>3.12.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.osgi-3.12.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>rt.equinox.bundles</groupId>
+            <artifactId>org.eclipse.equinox.common</artifactId>
+            <version>3.9.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.equinox.common-3.9.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>rt.equinox.bundles</groupId>
+            <artifactId>org.eclipse.equinox.preferences</artifactId>
+            <version>3.6.100-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.equinox.preferences-3.6.100-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>eclipse.platform.text</groupId>
+            <artifactId>org.eclipse.text</artifactId>
+            <version>3.6.100-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.text-3.6.100-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>eclipse.platform.ui</groupId>
+            <artifactId>org.eclipse.jface</artifactId>
+            <version>3.13.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/org.eclipse.jface-3.13.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <!-- For Gumtree -->
+        <dependency>
+            <groupId>com.github.gumtreediff</groupId>
+            <artifactId>core</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.gumtreediff</groupId>
+            <artifactId>client</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+    </dependencies>
+
+</project>
