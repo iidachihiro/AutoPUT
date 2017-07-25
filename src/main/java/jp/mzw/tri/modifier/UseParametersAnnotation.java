@@ -1,6 +1,13 @@
 package jp.mzw.tri.modifier;
 
+import com.github.gumtreediff.actions.ActionGenerator;
+import com.github.gumtreediff.actions.model.Action;
+import com.github.gumtreediff.matchers.MappingStore;
+import com.github.gumtreediff.matchers.heuristic.LcsMatcher;
+import com.github.gumtreediff.tree.ITree;
+import com.github.gumtreediff.tree.TreeUtils;
 import jp.mzw.tri.ast.AllElementsFindVisitor;
+import jp.mzw.tri.ast.JdtVisitor;
 import jp.mzw.tri.core.TestCase;
 import jp.mzw.tri.core.TestSuite;
 import jp.mzw.tri.util.Utils;
@@ -26,15 +33,40 @@ public class UseParametersAnnotation {
     }
 
     public void useParametersAnnotation() {
-        for (TestCase testCase : testSuite.getTestCases()) {
-            if (!testCase.getName().equals("testLargeArguments")) {
-                continue;
-            }
-            MethodDeclaration method = testCase.getMethodDeclaration();
-            if (detect(method)) {
-                modify(method);
+        int size = testSuite.getTestCases().size();
+        for (int i = 0; i < size; i++) {
+            for (int j = size - 1; i < j; j--) {
+                TestCase src = testSuite.getTestCases().get(i);
+                TestCase dst = testSuite.getTestCases().get(j);
+                List<Action> actions = getActions(src.getMethodDeclaration(), dst.getMethodDeclaration());
+                if (actions.isEmpty()) {
+                    System.out.println("Src: " + src.getMethodDeclaration().getName());
+                    System.out.println(src.getMethodDeclaration());
+                    System.out.println("Dst: " + dst.getMethodDeclaration().getName());
+                    System.out.println(dst.getMethodDeclaration());
+                    System.out.println();
+                }
             }
         }
+    }
+
+    private List<Action> getActions(MethodDeclaration src, MethodDeclaration dst) {
+        ITree srcTree = getITree(src);
+        ITree dstTree = getITree(dst);
+        LcsMatcher m = new LcsMatcher(srcTree, dstTree, new MappingStore());
+        m.match();
+        ActionGenerator ag = new ActionGenerator(srcTree, dstTree, m.getMappings());
+        ag.generate();
+        return ag.getActions();
+    }
+
+    private ITree getITree(ASTNode method) {
+        JdtVisitor visitor = new JdtVisitor();
+        method.accept(visitor);
+        ITree tree = visitor.getTreeContext().getRoot();
+        tree.refresh();
+        TreeUtils.postOrderNumbering(tree);
+        return tree;
     }
 
     private void modify(MethodDeclaration method, ASTNode target) {

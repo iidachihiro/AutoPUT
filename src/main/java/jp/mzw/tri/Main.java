@@ -23,7 +23,7 @@ public class Main {
         Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
         List<TestSuite> testSuites = project.getTestSuites();
         for (TestSuite testSuite : testSuites) {
-            if (!testSuite.getTestFile().toString().endsWith("GaussianTest.java")) {
+            if (!testSuite.getTestFile().toString().endsWith("ComplexFormatAbstractTest.java")) {
                 continue;
             }
 //            UseConstVariable useConstVariable = new UseConstVariable(testSuite);
