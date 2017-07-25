@@ -12,7 +12,8 @@ import java.util.List;
 public class AllMethodFindVisitor extends ASTVisitor {
     private List<MethodDeclaration> methods;
     public AllMethodFindVisitor() {
-        this.methods = new ArrayList<MethodDeclaration>();
+        super();
+        this.methods = new ArrayList<>();
     }
     @Override
     public boolean visit(MethodDeclaration node) {

@@ -1,11 +1,7 @@
 package jp.mzw.tri.ast;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
-import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by TK on 7/21/17.

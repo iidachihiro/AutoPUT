@@ -3,7 +3,7 @@ package jp.mzw.tri;
 import jp.mzw.tri.core.Project;
 
 import jp.mzw.tri.core.TestSuite;
-import jp.mzw.tri.modifier.UseConstVariable;
+import jp.mzw.tri.modifier.UseParametersAnnotation;
 import org.eclipse.jface.text.BadLocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +23,13 @@ public class Main {
         Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
         List<TestSuite> testSuites = project.getTestSuites();
         for (TestSuite testSuite : testSuites) {
-            if (!testSuite.getTestFile().toString().endsWith("CSVParserTest.java")) {
+            if (!testSuite.getTestFile().toString().endsWith("GaussianTest.java")) {
                 continue;
             }
-            UseConstVariable useConstVariable = new UseConstVariable(testSuite);
-            useConstVariable.checkConstVariavbles();
+//            UseConstVariable useConstVariable = new UseConstVariable(testSuite);
+//            useConstVariable.checkConstVariavbles();
+            UseParametersAnnotation useParametersAnnotation = new UseParametersAnnotation(testSuite);
+            useParametersAnnotation.useParametersAnnotation();
         }
     }
 

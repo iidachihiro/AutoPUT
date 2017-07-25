@@ -15,6 +15,7 @@ public class AllLiteralFindVisitor extends ASTVisitor {
     private List<Expression> literals;
     private List<StringLiteral> strings;
     public AllLiteralFindVisitor() {
+        super();
         this.literals = new ArrayList<>();
         this.strings = new ArrayList<>();
     }

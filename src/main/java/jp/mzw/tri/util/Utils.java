@@ -1,5 +1,7 @@
 package jp.mzw.tri.util;
 
+import org.eclipse.jdt.core.dom.MethodInvocation;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +31,11 @@ public class Utils {
             }
         }
         return ret;
+    }
+
+    public static boolean compareAssetionMethod(MethodInvocation src, MethodInvocation dst) {
+
+        return false;
     }
 
 
