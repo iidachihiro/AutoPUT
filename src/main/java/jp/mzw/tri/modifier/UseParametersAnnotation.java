@@ -6,19 +6,19 @@ import com.github.gumtreediff.matchers.MappingStore;
 import com.github.gumtreediff.matchers.heuristic.LcsMatcher;
 import com.github.gumtreediff.tree.ITree;
 import com.github.gumtreediff.tree.TreeUtils;
-import jp.mzw.tri.ast.AllElementsFindVisitor;
 import jp.mzw.tri.ast.JdtVisitor;
 import jp.mzw.tri.core.TestCase;
 import jp.mzw.tri.core.TestSuite;
-import jp.mzw.tri.util.Utils;
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by TK on 7/24/17.
@@ -26,7 +26,14 @@ import java.util.List;
 public class UseParametersAnnotation {
     protected static Logger LOGGER = LoggerFactory.getLogger(UseParametersAnnotation.class);
 
+    private final static String RUN_WITH = "RunWith";
+    private final static String PARAMETERS = "Parameters";
+    private final static String INPUT_NAME = "input";
+    private final static String EXPECTED_NAME = "expected";
+
     protected TestSuite testSuite;
+    private MethodDeclaration key;
+    private List<MethodDeclaration> targets;
 
     public UseParametersAnnotation(TestSuite testSuite) {
         this.testSuite = testSuite;
@@ -34,25 +41,196 @@ public class UseParametersAnnotation {
 
     public void useParametersAnnotation() {
         int size = testSuite.getTestCases().size();
+        Map<MethodDeclaration, List<MethodDeclaration>> targetMap = new HashMap<>();
+        boolean[] registered = new boolean[size];
         for (int i = 0; i < size; i++) {
+            if (registered[i]) {
+                continue;
+            }
             for (int j = size - 1; i < j; j--) {
+                if (registered[j]) {
+                    continue;
+                }
                 TestCase src = testSuite.getTestCases().get(i);
                 TestCase dst = testSuite.getTestCases().get(j);
-                List<Action> actions = getActions(src.getMethodDeclaration(), dst.getMethodDeclaration());
+                List<Action> actions = getActions(src.getMethodDeclaration(), dst.getMethodDeclaration(), true);
                 if (actions.isEmpty()) {
-                    System.out.println("Src: " + src.getMethodDeclaration().getName());
-                    System.out.println(src.getMethodDeclaration());
-                    System.out.println("Dst: " + dst.getMethodDeclaration().getName());
-                    System.out.println(dst.getMethodDeclaration());
-                    System.out.println();
+                    MethodDeclaration key = src.getMethodDeclaration();
+                    List<MethodDeclaration> targetList = targetMap.get(key);
+                    if (targetList == null) {
+                        targetList = new ArrayList<>();
+                        targetList.add(src.getMethodDeclaration());
+                        registered[i] = true;
+                        targetMap.put(key, targetList);
+                    }
+                    targetList.add(dst.getMethodDeclaration());
+                    registered[j] = true;
                 }
             }
         }
+
+        for (MethodDeclaration key : targetMap.keySet()) {
+            List<MethodDeclaration> targets = targetMap.get(key);
+//            System.out.println("====================");
+//            for (MethodDeclaration method : targets) {
+//                System.out.println(method);
+//            }
+//            System.out.println("====================");
+            this.key = key;
+            this.targets = targets;
+            createPUT(key, targets);
+        }
     }
 
-    private List<Action> getActions(MethodDeclaration src, MethodDeclaration dst) {
-        ITree srcTree = getITree(src);
-        ITree dstTree = getITree(dst);
+    private void createPUT(MethodDeclaration key, List<MethodDeclaration> similarMethods) {
+        // prepare
+        final AST ast = key.getRoot().getAST();
+        final ASTRewrite rewrite = ASTRewrite.create(ast);
+        CompilationUnit cu = (CompilationUnit) ASTNode.copySubtree(ast, key.getRoot());
+        TypeDeclaration replace = createNewTypeDeclaration(ast);
+        replace.bodyDeclarations().addAll(createFieldDeclaration(ast));
+        replace.bodyDeclarations().addAll(createMethodDeclaration(ast));
+    }
+
+    private TypeDeclaration createNewTypeDeclaration(AST ast) {
+        TypeDeclaration ret = ast.newTypeDeclaration();
+        Annotation annotation = createRunWithAnnotation(ast);
+        ret.modifiers().add(annotation);
+        ret.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
+        return ret;
+    }
+
+    private Annotation createRunWithAnnotation(AST ast) {
+        SingleMemberAnnotation annotation = ast.newSingleMemberAnnotation();
+        annotation.setTypeName(ast.newName(RUN_WITH));
+        TypeLiteral type = ast.newTypeLiteral();
+        type.setType(ast.newSimpleType(ast.newSimpleName(key.getName().toString())));
+        annotation.setValue(type);
+        return annotation;
+    }
+
+    private List<FieldDeclaration> createFieldDeclaration(AST ast) {
+        List<FieldDeclaration> fields = new ArrayList<>();
+        // create input
+        VariableDeclarationFragment inputFragment = ast.newVariableDeclarationFragment();
+        inputFragment.setName(ast.newSimpleName(INPUT_NAME));
+        FieldDeclaration input = ast.newFieldDeclaration(inputFragment);
+        // TODO 変数の型を設定
+        // input.setType();
+        input.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PRIVATE_KEYWORD));
+        fields.add(input);
+
+        // create expected results
+        VariableDeclarationFragment expectedFragment = ast.newVariableDeclarationFragment();
+        expectedFragment.setName(ast.newSimpleName(EXPECTED_NAME));
+        FieldDeclaration expected = ast.newFieldDeclaration(expectedFragment);
+        // TODO 変数の型を設定
+        // input.setType();
+        input.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PRIVATE_KEYWORD));
+        fields.add(expected);
+
+        return fields;
+    }
+
+    private List<MethodDeclaration> createMethodDeclaration(AST ast) {
+        List<MethodDeclaration> methods = new ArrayList<>();
+        MethodDeclaration constructor = createConstructor(ast);
+        MethodDeclaration data = createDataMethod(ast);
+        MethodDeclaration test = createTestMethod(ast);
+
+        methods.add(constructor);
+        methods.add(data);
+        methods.add(test);
+        return methods;
+    }
+
+    private MethodDeclaration createTestMethod(AST ast) {
+        MethodDeclaration testMethod = ast.newMethodDeclaration();
+
+        return testMethod;
+    }
+
+    private MethodDeclaration createDataMethod(AST ast) {
+        MethodDeclaration method = ast.newMethodDeclaration();
+        method.setConstructor(false);
+        method.setName(ast.newSimpleName("data"));
+        SingleMemberAnnotation annotation = ast.newSingleMemberAnnotation();
+        annotation.setTypeName(ast.newName(PARAMETERS));
+        method.modifiers().add(annotation);
+        method.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
+        method.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.STATIC_KEYWORD));
+        method.setReturnType2(createDataReturnType(ast));
+        method.setBody(createDataContent(ast));
+        return method;
+    }
+
+    private Block createDataContent(AST ast) {
+        Block block = ast.newBlock();
+        ReturnStatement returnStatement = ast.newReturnStatement();
+        MethodInvocation content = ast.newMethodInvocation();
+        content.setExpression(ast.newSimpleName("Arrays"));
+        content.setName(ast.newSimpleName("asList"));
+        // asListの引数を作る
+        ArrayType arrayType = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
+        // two dimensions
+        arrayType.dimensions().add(ast.newDimension());
+        arrayType.dimensions().add(ast.newDimension());
+        ArrayCreation arrayCreation = ast.newArrayCreation();
+        arrayCreation.setType(arrayType);
+        ArrayInitializer arrayInitializer = ast.newArrayInitializer();
+        // TODO arrayInitializerを作る
+        arrayCreation.setInitializer(arrayInitializer);
+        content.setExpression(arrayCreation);
+        returnStatement.setExpression(content);
+        block.statements().add(returnStatement);
+        return block;
+    }
+
+    private Type createDataReturnType(AST ast) {
+        ArrayType objectArray = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
+        objectArray.dimensions().add(ast.newDimension());
+        Type ret = ast.newParameterizedType(ast.newSimpleType(ast.newName("Collection")));
+        return ret;
+    }
+
+    private MethodDeclaration createConstructor(AST ast) {
+        MethodDeclaration constructor = ast.newMethodDeclaration();
+        constructor.setConstructor(true);
+        constructor.setName(ast.newSimpleName(key.getName().toString()));
+        constructor.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
+        // TODO 引数の設定
+        // constructor.setReceiverType();
+        constructor.setBody(createConstructorBlock(ast));
+        return constructor;
+    }
+    private Block createConstructorBlock(AST ast) {
+        Block block = ast.newBlock();
+        // create "this.input = input;"
+        Assignment inputAssignment = ast.newAssignment();
+        inputAssignment.setOperator(Assignment.Operator.ASSIGN);
+        FieldAccess leftOperand = ast.newFieldAccess();
+        leftOperand.setExpression(ast.newThisExpression());
+        leftOperand.setName(ast.newSimpleName(INPUT_NAME));
+        inputAssignment.setLeftHandSide(leftOperand);
+        inputAssignment.setRightHandSide(ast.newSimpleName(INPUT_NAME));
+        block.statements().add(inputAssignment);
+
+        // create "this.expected = expected;"
+        Assignment expectedAssignment = ast.newAssignment();
+        expectedAssignment.setOperator(Assignment.Operator.ASSIGN);
+        leftOperand = ast.newFieldAccess();
+        leftOperand.setExpression(ast.newThisExpression());
+        leftOperand.setName(ast.newSimpleName(EXPECTED_NAME));
+        expectedAssignment.setLeftHandSide(leftOperand);
+        expectedAssignment.setRightHandSide(ast.newSimpleName(EXPECTED_NAME));
+        block.statements().add(expectedAssignment);
+
+        return block;
+    }
+
+    private List<Action> getActions(ASTNode src, ASTNode dst, boolean lessLabel) {
+        ITree srcTree = getITree(src,lessLabel);
+        ITree dstTree = getITree(dst,lessLabel);
         LcsMatcher m = new LcsMatcher(srcTree, dstTree, new MappingStore());
         m.match();
         ActionGenerator ag = new ActionGenerator(srcTree, dstTree, m.getMappings());
@@ -60,163 +238,12 @@ public class UseParametersAnnotation {
         return ag.getActions();
     }
 
-    private ITree getITree(ASTNode method) {
-        JdtVisitor visitor = new JdtVisitor();
+    private ITree getITree(ASTNode method, boolean lessLabel) {
+        JdtVisitor visitor = new JdtVisitor(lessLabel);
         method.accept(visitor);
         ITree tree = visitor.getTreeContext().getRoot();
         tree.refresh();
         TreeUtils.postOrderNumbering(tree);
         return tree;
-    }
-
-    private void modify(MethodDeclaration method, ASTNode target) {
-        final CompilationUnit cu = testSuite.getCu();
-        final AST ast = cu.getAST();
-        final ASTRewrite rewrite = ASTRewrite.create(ast);
-
-
-        SingleMemberAnnotation annotation = getRunWithAnnotation(ast);
-        TypeDeclaration typeDeclaration = ast.newTypeDeclaration();
-        typeDeclaration.modifiers().add(annotation);
-        typeDeclaration.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
-        typeDeclaration.setName(ast.newSimpleName(StringUtils.capitalize(method.getName().toString())));
-
-
-        rewrite.replace(testSuite.getClassDeclaration(), typeDeclaration, null);
-        System.out.println("CompilationUnit " + cu);
-    }
-
-    private boolean detect(MethodDeclaration methodDeclaration) {
-        List<MethodInvocation> assertions = getAssertionMethods(methodDeclaration);
-        if (assertions.isEmpty()) {
-            return false;
-        }
-        return detect(assertions);
-    }
-
-    private boolean detect(List<MethodInvocation> assertions) {
-        for (int i = 0; i < assertions.size(); i++) {
-            for (int j = assertions.size() - 1; i < j; j--) {
-                if (Utils.compareAssetionMethod(assertions.get(i), assertions.get(j))) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-
-    private ASTNode canUseParametersAnnotation2(MethodDeclaration method) {
-        AllElementsFindVisitor visitor = new AllElementsFindVisitor();
-        method.accept(visitor);
-        List<ASTNode> nodes = visitor.getNodes();
-        List<Name> arrayVarNames = new ArrayList<>();
-        for (ASTNode node : nodes) {
-            if (isArrayVarInit(node)) {
-                arrayVarNames.add(((VariableDeclarationFragment)node).getName());
-            }
-        }
-        for (ASTNode node : nodes) {
-            if (!(node instanceof SimpleName)) {
-                continue;
-            }
-            SimpleName name = (SimpleName) node;
-            if (isArrayVar(name, arrayVarNames) && usedInAssertion(name) && usedInForStatement(name)) {
-                return targetForStatement(name);
-            }
-        }
-        return null;
-    }
-
-    private boolean isArrayVar(Name name, List<Name> arrayVarNames) {
-        if (arrayVarNames == null || arrayVarNames.isEmpty()) {
-            return false;
-        }
-        for (Name arrayVar : arrayVarNames) {
-            if (arrayVar.toString().equals(name.toString())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean usedInForStatement(Name name) {
-        ASTNode node = name;
-        while (node.getParent() != null) {
-            node = node.getParent();
-            if (node instanceof ForStatement || node instanceof EnhancedForStatement) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private ASTNode targetForStatement(Name name) {
-        ASTNode node = name;
-        while (node.getParent() != null) {
-            node = node.getParent();
-            if (node instanceof ForStatement || node instanceof EnhancedForStatement) {
-                return node;
-            }
-        }
-        return null;
-    }
-
-    private boolean usedInAssertion(Name name) {
-        ASTNode node = name;
-        while (node.getParent() != null) {
-            node = node.getParent();
-            if (isAssertMethod(node)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isArrayVarInit(ASTNode node) {
-        if (!(node instanceof VariableDeclarationFragment)) {
-            return false;
-        }
-        VariableDeclarationFragment fragment = (VariableDeclarationFragment) node;
-        return fragment.getInitializer() instanceof ArrayInitializer;
-    }
-    private List<MethodInvocation> getAssertionMethods(MethodDeclaration methodDeclaration) {
-        AllElementsFindVisitor visitor = new AllElementsFindVisitor();
-        methodDeclaration.accept(visitor);
-        List<ASTNode> nodes = visitor.getNodes();
-        List<MethodInvocation> assertions = new ArrayList<>();
-        for (ASTNode node : nodes) {
-            if (isAssertMethod(node)) {
-                assertions.add((MethodInvocation) node);
-            }
-        }
-        return assertions;
-    }
-    private boolean isAssertMethod(ASTNode node) {
-        if (!(node instanceof MethodInvocation)) {
-            return false;
-        }
-        MethodInvocation method = (MethodInvocation) node;
-        return method.getName().toString().startsWith("assert");
-    }
-
-    private SingleMemberAnnotation getRunWithAnnotation(AST ast) {
-        SingleMemberAnnotation annotation = ast.newSingleMemberAnnotation();
-        annotation.setTypeName(ast.newName("RunWith"));
-        TypeLiteral typeLiteral = ast.newTypeLiteral();
-        typeLiteral.setType(ast.newSimpleType(ast.newName("Parameterized")));
-        annotation.setValue(typeLiteral);
-        return annotation;
-    }
-
-    private MethodDeclaration getDataMethod(AST ast) {
-        MethodDeclaration methodDeclaration = ast.newMethodDeclaration();
-        SingleMemberAnnotation annotation = ast.newSingleMemberAnnotation();
-        annotation.setTypeName(ast.newName("Parameters"));
-        methodDeclaration.modifiers().add(annotation);
-        methodDeclaration.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
-        methodDeclaration.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.STATIC_KEYWORD));
-
-        return methodDeclaration;
     }
 }
