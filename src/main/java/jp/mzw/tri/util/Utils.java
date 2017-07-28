@@ -1,5 +1,7 @@
 package jp.mzw.tri.util;
 
+import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 
 import java.io.File;
@@ -33,10 +35,12 @@ public class Utils {
         return ret;
     }
 
-    public static boolean compareAssetionMethod(MethodInvocation src, MethodInvocation dst) {
-
-        return false;
+    public static boolean isAssertionMethod(Expression node) {
+        if (!(node instanceof MethodInvocation)) {
+            return false;
+        }
+        MethodInvocation method = (MethodInvocation) node;
+        return method.getName().toString().startsWith("assert");
     }
-
 
 }

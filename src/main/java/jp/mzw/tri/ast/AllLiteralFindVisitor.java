@@ -68,6 +68,13 @@ public class AllLiteralFindVisitor extends ASTVisitor {
         }
         return false;
     }
+    @Override
+    public boolean visit(SimpleName node) {
+        if(!this.literals.contains(node)) {
+            this.literals.add(node);
+        }
+        return false;
+    }
 
     public List<Expression> getFoundLiterals() {
         return this.literals;

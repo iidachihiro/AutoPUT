@@ -7,6 +7,8 @@ import org.eclipse.jdt.core.dom.ASTVisitor;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by TK on 7/25/17.
@@ -14,23 +16,24 @@ import java.util.Deque;
 public class AbstractJdtVisitor extends ASTVisitor {
     protected TreeContext context = new TreeContext();
     private Deque<ITree> trees = new ArrayDeque<>();
+    private Map<ITree, ASTNode> astNodeMap;
     public AbstractJdtVisitor() {
         super(true);
+        astNodeMap = new HashMap<>();
     }
     public TreeContext getTreeContext() {
         return context;
     }
+
+    public Map<ITree, ASTNode> getAstNodeMap() {
+        return astNodeMap;
+    }
     protected void pushNode(ASTNode n, String label) {
         int type = n.getNodeType();
         String typeName = n.getClass().getSimpleName();
-        push(type, typeName, label, n.getStartPosition(), n.getLength());
+        push(type, typeName, label, n.getStartPosition(), n.getLength(), n);
     }
-    protected void pushFakeNode(EntityType n, int startPosition, int length) {
-        int type = -n.ordinal(); // Fake types have negative types (but does it matter ?)
-        String typeName = n.name();
-        push(type, typeName, "", startPosition, length);
-    }
-    private void push(int type, String typeName, String label, int startPosition, int length) {
+    private void push(int type, String typeName, String label, int startPosition, int length, ASTNode n) {
         ITree t = context.createTree(type, label, typeName);
         t.setPos(startPosition);
         t.setLength(length);
@@ -40,6 +43,7 @@ public class AbstractJdtVisitor extends ASTVisitor {
             ITree parent = trees.peek();
             t.setParentAndUpdateChildren(parent);
         }
+        astNodeMap.put(t, n);
         trees.push(t);
     }
     protected ITree getCurrentParent() {
