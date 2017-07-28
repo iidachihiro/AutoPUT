@@ -1,9 +1,9 @@
-package jp.mzw.tri;
+package jp.mzw.autoput;
 
-import jp.mzw.tri.core.Project;
+import jp.mzw.autoput.core.Project;
 
-import jp.mzw.tri.core.TestSuite;
-import jp.mzw.tri.modifier.UseParametersAnnotation;
+import jp.mzw.autoput.core.TestSuite;
+import jp.mzw.autoput.modifier.UseParametersAnnotation;
 import org.eclipse.jface.text.BadLocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

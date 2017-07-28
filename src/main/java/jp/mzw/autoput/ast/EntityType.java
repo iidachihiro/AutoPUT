@@ -1,4 +1,4 @@
-package jp.mzw.tri.ast;
+package jp.mzw.autoput.ast;
 
 /**
  * Created by TK on 7/25/17.

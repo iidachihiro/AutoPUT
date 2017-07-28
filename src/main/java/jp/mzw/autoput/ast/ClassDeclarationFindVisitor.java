@@ -1,4 +1,4 @@
-package jp.mzw.tri.ast;
+package jp.mzw.autoput.ast;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.TypeDeclaration;

@@ -1,4 +1,4 @@
-package jp.mzw.tri.modifier;
+package jp.mzw.autoput.modifier;
 
 import com.github.gumtreediff.actions.ActionGenerator;
 import com.github.gumtreediff.actions.model.Action;
@@ -6,10 +6,10 @@ import com.github.gumtreediff.matchers.MappingStore;
 import com.github.gumtreediff.matchers.heuristic.LcsMatcher;
 import com.github.gumtreediff.tree.ITree;
 import com.github.gumtreediff.tree.TreeUtils;
-import jp.mzw.tri.ast.*;
-import jp.mzw.tri.core.TestCase;
-import jp.mzw.tri.core.TestSuite;
-import jp.mzw.tri.util.Utils;
+import jp.mzw.autoput.ast.*;
+import jp.mzw.autoput.core.TestCase;
+import jp.mzw.autoput.core.TestSuite;
+import jp.mzw.autoput.util.Utils;
 import org.eclipse.jdt.core.dom.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

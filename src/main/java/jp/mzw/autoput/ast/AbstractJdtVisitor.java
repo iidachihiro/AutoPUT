@@ -1,4 +1,4 @@
-package jp.mzw.tri.ast;
+package jp.mzw.autoput.ast;
 
 import com.github.gumtreediff.tree.ITree;
 import com.github.gumtreediff.tree.TreeContext;

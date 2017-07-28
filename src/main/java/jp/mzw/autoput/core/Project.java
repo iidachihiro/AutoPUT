@@ -1,8 +1,8 @@
-package jp.mzw.tri.core;
+package jp.mzw.autoput.core;
 
-import jp.mzw.tri.Main;
+import jp.mzw.autoput.Main;
 
-import jp.mzw.tri.util.Utils;
+import jp.mzw.autoput.util.Utils;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;

@@ -1,7 +1,7 @@
-package jp.mzw.tri.core;
+package jp.mzw.autoput.core;
 
-import jp.mzw.tri.ast.AllMethodFindVisitor;
-import jp.mzw.tri.ast.ClassDeclarationFindVisitor;
+import jp.mzw.autoput.ast.AllMethodFindVisitor;
+import jp.mzw.autoput.ast.ClassDeclarationFindVisitor;
 import org.eclipse.jdt.core.dom.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,8 +1,8 @@
-package jp.mzw.tri.modifier;
+package jp.mzw.autoput.modifier;
 
-import jp.mzw.tri.ast.AllLiteralFindVisitor;
-import jp.mzw.tri.core.TestCase;
-import jp.mzw.tri.core.TestSuite;
+import jp.mzw.autoput.ast.AllLiteralFindVisitor;
+import jp.mzw.autoput.core.TestCase;
+import jp.mzw.autoput.core.TestSuite;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;

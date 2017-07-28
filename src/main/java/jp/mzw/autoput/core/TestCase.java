@@ -1,4 +1,4 @@
-package jp.mzw.tri.core;
+package jp.mzw.autoput.core;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
