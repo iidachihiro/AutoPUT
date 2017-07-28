@@ -14,6 +14,9 @@ public class JdtVisitor extends AbstractJdtVisitor {
         this.lessLabel = false;
     }
 
+    public static JdtVisitor createJdtVisitorWithLessLabel() {
+        return new JdtVisitor(true);
+    }
     public JdtVisitor(boolean lessLabel) {
         super();
         this.lessLabel = lessLabel;

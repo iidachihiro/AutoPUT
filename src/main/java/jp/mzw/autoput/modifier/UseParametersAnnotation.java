@@ -9,6 +9,7 @@ import com.github.gumtreediff.tree.TreeUtils;
 import jp.mzw.autoput.ast.*;
 import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
+import jp.mzw.autoput.util.Constant;
 import jp.mzw.autoput.util.Utils;
 import org.eclipse.jdt.core.dom.*;
 import org.slf4j.Logger;
@@ -22,10 +23,13 @@ import java.util.*;
 public class UseParametersAnnotation {
     protected static Logger LOGGER = LoggerFactory.getLogger(UseParametersAnnotation.class);
 
+    private final static String CLASS_NAME = "AutoPUT";
+    private final static String METHOD_NAME = "autoPutTest";
     private final static String RUN_WITH = "RunWith";
     private final static String PARAMETERS = "Parameters";
     private final static String INPUT_NAME = "input";
     private final static String EXPECTED_NAME = "expected";
+    public static final String DATA_METHOD = "data";
 
     protected TestSuite testSuite;
     private MethodDeclaration key;
@@ -102,7 +106,7 @@ public class UseParametersAnnotation {
         Annotation annotation = createRunWithAnnotation(ast);
         ret.modifiers().add(annotation);
         ret.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
-        ret.setName(ast.newSimpleName("AutoPUT"));
+        ret.setName(ast.newSimpleName(CLASS_NAME));
         return ret;
     }
 
@@ -110,7 +114,7 @@ public class UseParametersAnnotation {
         SingleMemberAnnotation annotation = ast.newSingleMemberAnnotation();
         annotation.setTypeName(ast.newName(RUN_WITH));
         TypeLiteral type = ast.newTypeLiteral();
-        type.setType(ast.newSimpleType(ast.newSimpleName(key.getName().toString())));
+        type.setType(ast.newSimpleType(ast.newSimpleName("Parameterized")));
         annotation.setValue(type);
         return annotation;
     }
@@ -150,11 +154,11 @@ public class UseParametersAnnotation {
     private MethodDeclaration createTestMethod(AST ast) {
         MethodDeclaration testMethod = ast.newMethodDeclaration();
         MarkerAnnotation annotation = ast.newMarkerAnnotation();
-        annotation.setTypeName(ast.newName("Test"));
+        annotation.setTypeName(ast.newName(Constant.TEST_ANNOTATION));
         testMethod.modifiers().add(annotation);
         testMethod.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PUBLIC_KEYWORD));
         testMethod.setReturnType2(ast.newPrimitiveType(PrimitiveType.VOID));
-        testMethod.setName(ast.newSimpleName("parameterizedTest"));
+        testMethod.setName(ast.newSimpleName(METHOD_NAME));
         // 中身をinput, expected関連のstatementのみ変更する
         Block originBody = this.key.getBody();
         Block copyBody = ast.newBlock();
@@ -228,7 +232,7 @@ public class UseParametersAnnotation {
     private MethodDeclaration createDataMethod(AST ast) {
         MethodDeclaration method = ast.newMethodDeclaration();
         method.setConstructor(false);
-        method.setName(ast.newSimpleName("data"));
+        method.setName(ast.newSimpleName(DATA_METHOD));
         MarkerAnnotation annotation = ast.newMarkerAnnotation();
         annotation.setTypeName(ast.newName(PARAMETERS));
         method.modifiers().add(annotation);
@@ -526,8 +530,7 @@ public class UseParametersAnnotation {
     private boolean isInputDeclarationStatement(VariableDeclarationStatement statement) {
         for (Object object : statement.fragments()) {
             VariableDeclarationFragment fragment = (VariableDeclarationFragment) object;
-            if (fragment.getName().toString().equals("actual")
-                    || fragment.getName().toString().equals("input")) {
+            if (ModifierUtils.isInputName(fragment.getName())) {
                 return true;
             }
         }
@@ -537,7 +540,7 @@ public class UseParametersAnnotation {
     private boolean isExpectedDeclarationStatement(VariableDeclarationStatement statement) {
         for (Object object : statement.fragments()) {
             VariableDeclarationFragment fragment = (VariableDeclarationFragment) object;
-            if (fragment.getName().toString().equals("expected")) {
+            if (ModifierUtils.isExpectedName(fragment.getName())) {
                 return true;
             }
         }
@@ -552,8 +555,7 @@ public class UseParametersAnnotation {
         }
         for (Object obj : variableDeclaration.fragments()) {
             VariableDeclarationFragment fragment = (VariableDeclarationFragment) obj;
-            if (fragment.getName().toString().equals("actual") ||
-                    fragment.getName().toString().equals("input")) {
+            if (ModifierUtils.isInputName(fragment.getName())) {
                 return fragment.getInitializer();
             }
         }
@@ -567,7 +569,7 @@ public class UseParametersAnnotation {
         }
         for (Object obj : variableDeclaration.fragments()) {
             VariableDeclarationFragment fragment = (VariableDeclarationFragment) obj;
-            if (fragment.getName().toString().equals("expected")) {
+            if (ModifierUtils.isExpectedName(fragment.getName())) {
                 return fragment.getInitializer();
             }
         }
