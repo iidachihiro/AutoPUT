@@ -4,4 +4,4 @@ SUBJECT=${1}
 
 CLASS_PATH="target/classes:target/test-classes:target/dependency/*"
 
-java -Xms6400m -cp ${CLASS_PATH} jp.mzw.tri.Main ${SUBJECT}
+java -Xms6400m -cp ${CLASS_PATH} jp.mzw.autoput.Main ${SUBJECT}
