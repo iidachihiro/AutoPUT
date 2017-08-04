@@ -46,11 +46,27 @@ public class ParameterizedModifierBase extends AbstractModifier {
     protected CompilationUnit createParameterizedCompilationUnit() {
         // packageとimportをコピー
         CompilationUnit modified = (CompilationUnit) ASTNode.copySubtree(ast, testSuite.getCu());
-        // TODO importを追加
+        modified.imports().addAll(createImportDeclarations());
         // 新しいclassをset
         modified.types().clear();
         modified.types().add(createParameterizedClass());
         return modified;
+    }
+
+    private List<ImportDeclaration> createImportDeclarations() {
+        // import文を生成
+        ImportDeclaration runWith = ast.newImportDeclaration();
+        runWith.setName(ast.newSimpleName("org.junit.runner.RunWith"));
+        ImportDeclaration parameterized = ast.newImportDeclaration();
+        parameterized.setName(ast.newSimpleName("org.junit.runners.Parameterized"));
+        ImportDeclaration parameters = ast.newImportDeclaration();
+        parameters.setName(ast.newSimpleName("org.junit.runners.Parameters"));
+        //return
+        List<ImportDeclaration> ret = new ArrayList<>();
+        ret.add(runWith);
+        ret.add(parameterized);
+        ret.add(parameters);
+        return ret;
     }
 
     protected TypeDeclaration createParameterizedClass() {

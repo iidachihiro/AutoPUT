@@ -2,6 +2,8 @@ package jp.mzw.autoput.ast;
 
 import org.eclipse.jdt.core.dom.*;
 
+import java.util.List;
+
 /**
  * Created by TK on 7/28/17.
  */
@@ -42,5 +44,15 @@ public class ASTUtils {
         return annotation;
     }
 
+    public static List<MethodInvocation> getAssertionMethods(ASTNode node) {
+        AllAssertionVisitor visitor = new AllAssertionVisitor();
+        node.accept(visitor);
+        return visitor.getAssertions();
+    }
 
+    public static List<SimpleName> getAllSimpleNames(ASTNode node) {
+        AllSimpleNameVisitor visitor = new AllSimpleNameVisitor();
+        node.accept(visitor);
+        return visitor.getSimpleNames();
+    }
 }
