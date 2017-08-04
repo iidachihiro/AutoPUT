@@ -48,8 +48,29 @@ public class UseParametersAnnotation {
     }
 
     public void useParametersAnnotation() {
+        Map<MethodDeclaration, List<MethodDeclaration>> detected = detect();
+
+        for (MethodDeclaration key : detected.keySet()) {
+            List<MethodDeclaration> targets = detected.get(key);
+            MethodDeclaration dst = targets.get(1);
+            if (!key.getName().toString().equals("testParseSimpleWithDecimals")) {
+                continue;
+            }
+            if (!dst.getName().toString().equals("testParseSimpleWithDecimalsTrunc")) {
+                continue;
+            }
+            detect(key, dst);
+            this.key = key;
+            createPUT(key);
+        }
+    }
+
+    /*
+    Gumtree Diffで差分のないMethodDeclarationを取得する．
+     */
+    private Map<MethodDeclaration, List<MethodDeclaration>> detect() {
         int size = testSuite.getTestCases().size();
-        Map<MethodDeclaration, List<MethodDeclaration>> targetMap = new HashMap<>();
+        Map<MethodDeclaration, List<MethodDeclaration>> ret = new HashMap<>();
         boolean[] registered = new boolean[size];
         for (int i = 0; i < size; i++) {
             if (registered[i]) {
@@ -64,32 +85,19 @@ public class UseParametersAnnotation {
                 List<Action> actions = getActions(src.getMethodDeclaration(), dst.getMethodDeclaration(), true);
                 if (actions.isEmpty()) {
                     MethodDeclaration key = src.getMethodDeclaration();
-                    List<MethodDeclaration> targetList = targetMap.get(key);
+                    List<MethodDeclaration> targetList = ret.get(key);
                     if (targetList == null) {
                         targetList = new ArrayList<>();
                         targetList.add(src.getMethodDeclaration());
                         registered[i] = true;
-                        targetMap.put(key, targetList);
+                        ret.put(key, targetList);
                     }
                     targetList.add(dst.getMethodDeclaration());
                     registered[j] = true;
                 }
             }
         }
-
-        for (MethodDeclaration key : targetMap.keySet()) {
-            List<MethodDeclaration> targets = targetMap.get(key);
-            MethodDeclaration dst = targets.get(1);
-            if (!key.getName().toString().equals("testParseSimpleWithDecimals")) {
-                continue;
-            }
-            if (!dst.getName().toString().equals("testParseSimpleWithDecimalsTrunc")) {
-                continue;
-            }
-            detect(key, dst);
-            this.key = key;
-            createPUT(key);
-        }
+        return ret;
     }
 
     private void createPUT(MethodDeclaration key) {
