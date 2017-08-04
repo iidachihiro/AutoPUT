@@ -24,23 +24,18 @@ public class ParameterizedModifierBase extends AbstractModifier {
 
     protected AST ast;
 
-    protected String inputType;
-    protected String expectedType;
+    protected String inputType = "String";
+    protected String expectedType = "String";
 
     public ParameterizedModifierBase(TestSuite testSuite) {
         super(testSuite);
-        ast = AST.newAST(AST.JLS8);
-    }
-
-    @Override
-    public Map<MethodDeclaration, List<MethodDeclaration>> detect() {
-        // TODO implementation
-        return new HashMap<>();
+        ast = testSuite.getCu().getAST();
     }
 
     @Override
     public void modify(List<MethodDeclaration> targets) {
         CompilationUnit parameterizedCU = createParameterizedCompilationUnit();
+        System.out.println(parameterizedCU);
     }
 
     protected CompilationUnit createParameterizedCompilationUnit() {
@@ -53,14 +48,14 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return modified;
     }
 
-    private List<ImportDeclaration> createImportDeclarations() {
+    protected List<ImportDeclaration> createImportDeclarations() {
         // import文を生成
         ImportDeclaration runWith = ast.newImportDeclaration();
-        runWith.setName(ast.newSimpleName("org.junit.runner.RunWith"));
+        runWith.setName(ast.newName(new String[]{"org", "junit", "runner", "RunWith"}));
         ImportDeclaration parameterized = ast.newImportDeclaration();
-        parameterized.setName(ast.newSimpleName("org.junit.runners.Parameterized"));
+        parameterized.setName(ast.newName(new String[] {"org", "junit", "runners", "Parameterized"}));
         ImportDeclaration parameters = ast.newImportDeclaration();
-        parameters.setName(ast.newSimpleName("org.junit.runners.Parameters"));
+        parameters.setName(ast.newName(new String[] {"org", "junit", "runners", "Parameters"}));
         //return
         List<ImportDeclaration> ret = new ArrayList<>();
         ret.add(runWith);
@@ -72,10 +67,10 @@ public class ParameterizedModifierBase extends AbstractModifier {
     protected TypeDeclaration createParameterizedClass() {
         TypeDeclaration modified = ast.newTypeDeclaration();
         // RunWithアノテーションを付与
-        SingleMemberAnnotation annotation = ASTUtils.getRunWithAnnotation();
+        SingleMemberAnnotation annotation = ASTUtils.getRunWithAnnotation(ast);
         modified.modifiers().add(annotation);
         // public修飾子を付与 & クラス名を付与
-        modified.modifiers().add(ASTUtils.getPublicModifier());
+        modified.modifiers().add(ASTUtils.getPublicModifier(ast));
         modified.setName(ast.newSimpleName(CLASS_NAME));
         // フィールド変数を定義
         modified.bodyDeclarations().addAll(createFieldDeclarations());
@@ -84,34 +79,34 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return modified;
     }
 
-    private List<FieldDeclaration> createFieldDeclarations() {
+    protected List<FieldDeclaration> createFieldDeclarations() {
         List<FieldDeclaration> fields = new ArrayList<>();
         fields.add(createFieldDeclaration(inputType, INPUT_VAR));
         fields.add(createFieldDeclaration(expectedType, EXPECTED_VAR));
         return fields;
     }
 
-    private FieldDeclaration createFieldDeclaration(String type, String var) {
+    protected FieldDeclaration createFieldDeclaration(String type, String var) {
         VariableDeclarationFragment fragment = ast.newVariableDeclarationFragment();
         fragment.setName(ast.newSimpleName(var));
         FieldDeclaration fieldDeclaration = ast.newFieldDeclaration(fragment);
         fieldDeclaration.setType(ast.newSimpleType(ast.newName(type)));
-        fieldDeclaration.modifiers().add(ASTUtils.getPrivateModifier());
+        fieldDeclaration.modifiers().add(ASTUtils.getPrivateModifier(ast));
         return fieldDeclaration;
     }
 
-    private List<MethodDeclaration> createMethodDeclaration() {
+    protected List<MethodDeclaration> createMethodDeclaration() {
         List<MethodDeclaration> methods = new ArrayList<>();
         MethodDeclaration constructor = createConstructor();
         MethodDeclaration data = createDataMethod();
-        MethodDeclaration test = createTestMethod(ast);
+        MethodDeclaration test = createTestMethod();
         methods.add(constructor);
         methods.add(data);
         methods.add(test);
         return methods;
     }
 
-    private MethodDeclaration createConstructor() {
+    protected MethodDeclaration createConstructor() {
         MethodDeclaration constructor = ast.newMethodDeclaration();
         constructor.setConstructor(true);
         // 名前を設定 & public修飾子を付与
@@ -137,7 +132,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return constructor;
     }
 
-    private ExpressionStatement createConstructorBlockAssignment(String var) {
+    protected ExpressionStatement createConstructorBlockAssignment(String var) {
         // "this.var = var;" を生成
         Assignment assignment = ast.newAssignment();
         assignment.setOperator(Assignment.Operator.ASSIGN);
@@ -150,14 +145,14 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return ret;
     }
 
-    private MethodDeclaration createDataMethod() {
+    protected MethodDeclaration createDataMethod() {
         MethodDeclaration method = ast.newMethodDeclaration();
         method.setConstructor(false);
         // 修飾子とメソッド名を設定
         method.setName(ast.newSimpleName(DATA_METHOD));
-        method.modifiers().add(ASTUtils.getParametersAnnotation());
-        method.modifiers().add(ASTUtils.getPublicModifier());
-        method.modifiers().add(ASTUtils.getStaticModifier());
+        method.modifiers().add(ASTUtils.getParametersAnnotation(ast));
+        method.modifiers().add(ASTUtils.getPublicModifier(ast));
+        method.modifiers().add(ASTUtils.getStaticModifier(ast));
         // returnの型(Collection<Object[]>)を設定
         ParameterizedType type = ast.newParameterizedType(ast.newSimpleType(ast.newName("Collection")));
         ArrayType objectArray = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
@@ -168,7 +163,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return method;
     }
 
-    private Block createDataBody() {
+    protected Block createDataBody() {
         // return Arrays.asList(new Object[][] {{ input1, expected1 }, { input2, expected2 }}); を作成する
         // まず, new Object[][] {{ input1, expected1 }, { input2, expected2 }} を作成
         ArrayType arrayType = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
@@ -190,22 +185,26 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return block;
     }
 
-    private ArrayInitializer createInputAndExpected() {
+    protected ArrayInitializer createInputAndExpected() {
         // {{ input1, expected1 }, { input2, expected2 }} を作る
         ArrayInitializer arrayInitializer = ast.newArrayInitializer();
         // TODO ArrayInitializerを作成する
         return arrayInitializer;
     }
 
-    private MethodDeclaration createTestMethod(AST ast) {
+    protected MethodDeclaration createTestMethod() {
         MethodDeclaration testMethod = ast.newMethodDeclaration();
-        testMethod.modifiers().add(ASTUtils.getTestAnnotation());
-        testMethod.modifiers().add(ASTUtils.getPublicModifier());
+        testMethod.modifiers().add(ASTUtils.getTestAnnotation(ast));
+        testMethod.modifiers().add(ASTUtils.getPublicModifier(ast));
         testMethod.setReturnType2(ast.newPrimitiveType(PrimitiveType.VOID));
         testMethod.setName(ast.newSimpleName(METHOD_NAME));
-        Block body = ast.newBlock();
+        Block body = createTestMethodBody();
         // TODO Bodyを作成する
         testMethod.setBody(body);
         return testMethod;
+    }
+
+    protected Block createTestMethodBody() {
+        return ast.newBlock();
     }
 }
