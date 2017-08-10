@@ -30,8 +30,6 @@ public class ParameterizedModifierBase extends AbstractModifier {
     protected AST ast;
     protected ASTRewrite rewrite;
 
-    protected String inputType = "String";
-    protected String expectedType = "String";
 
     public ParameterizedModifierBase(TestSuite testSuite) {
         super(testSuite);
@@ -47,9 +45,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // dataメソッドを作成
         createDataMethod(origin);
         // 既存のテストメソッドとコンストラクタを全て削除
-//        deleteExistingMethodDeclarations();
+        deleteExistingMethodDeclarations(origin);
         // 既存のフィールド変数を削除
-//        deleteExistingFieldDeclarations();
+        deleteExistingFieldDeclarations();
         // import文を追加
         addImportDeclarations();
         // フィールド変数を追加
@@ -64,7 +62,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
             Document document = new Document(testSuite.getTestSources());
             TextEdit edit = rewrite.rewriteAST(document, null);
             edit.apply(document);
+            System.out.println("=========================");
             System.out.println(document.get());
+            System.out.println("=========================");
         } catch (IOException | BadLocationException e) {
             e.printStackTrace();
         }
@@ -133,12 +133,10 @@ public class ParameterizedModifierBase extends AbstractModifier {
         modifiersListRewrite.insertLast(ASTUtils.getPublicModifier(ast), null);
         // 引数を設定
         // inputの型と名前を設定
-        // TODO 型の部分
         SingleVariableDeclaration arg = ast.newSingleVariableDeclaration();
         arg.setType(getInputType(origin));
         arg.setName(ast.newSimpleName(INPUT_VAR));
         // expectedの型と名前を設定
-        // TODO 型の部分
         arg = ast.newSingleVariableDeclaration();
         arg.setType(getExpectedType(origin));
         arg.setName(ast.newSimpleName(EXPECTED_VAR));
@@ -248,10 +246,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // 共通部分が一番少ないメソッドを探す && similarなメソッドを集める
         for (TestCase testCase : testSuite.getTestCases()) {
             MethodDeclaration method = testCase.getMethodDeclaration();
-            if (method.equals(origin)) {
-                continue;
-            }
             if (similarAST(origin, method)) {
+                System.out.println("Similar method: " + method);
                 similarMethods.add(method);
                 if (mostDifferentNodes == null) {
                     mostDifferentNodes = ASTUtils.getDifferentNodes(method, origin);
@@ -289,28 +285,28 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 }
             }
             ArrayInitializer inputAndExpected = ast.newArrayInitializer();
-            ListRewrite inputAndExpectedListRewrite = rewrite.getListRewrite(inputAndExpected, ArrayInitializer.EXPRESSIONS_PROPERTY);
+            ListRewrite dataListRewrite = rewrite.getListRewrite(inputAndExpected, ArrayInitializer.EXPRESSIONS_PROPERTY);
             // 抜き出したinputが1つならそのまま，複数なら{}に入れて追加
             if (inputs.size() == 1) {
-                inputAndExpectedListRewrite.insertLast(inputs.get(0), null);
+                dataListRewrite.insertLast(inputs.get(0), null);
             } else {
                 ArrayInitializer inputArray = ast.newArrayInitializer();
                 ListRewrite inputListRewrite = rewrite.getListRewrite(inputArray, ArrayInitializer.EXPRESSIONS_PROPERTY);
                 for (ASTNode input : inputs) {
                     inputListRewrite.insertLast(input, null);
                 }
-                inputAndExpectedListRewrite.insertLast(inputArray, null);
+                dataListRewrite.insertLast(inputArray, null);
             }
             // 抜き出したexpectが1つならそのまま，複数なら{}に入れて追加
             if (expecteds.size() == 1) {
-                inputAndExpectedListRewrite.insertLast(expecteds.get(0), null);
+                dataListRewrite.insertLast(expecteds.get(0), null);
             } else {
                 ArrayInitializer expectedArray = ast.newArrayInitializer();
-                ListRewrite inputListRewrite = rewrite.getListRewrite(expectedArray, ArrayInitializer.EXPRESSIONS_PROPERTY);
-                for (ASTNode input : inputs) {
-                    inputListRewrite.insertLast(input, null);
+                ListRewrite expectedListRewrite = rewrite.getListRewrite(expectedArray, ArrayInitializer.EXPRESSIONS_PROPERTY);
+                for (ASTNode expected : expecteds) {
+                    expectedListRewrite.insertLast(expected, null);
                 }
-                inputAndExpectedListRewrite.insertLast(expectedArray, null);
+                dataListRewrite.insertLast(expectedArray, null);
             }
             listRewrite.insertLast(inputAndExpected, null);
         }
@@ -383,7 +379,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return;
     }
 
-    protected String _getInputType(MethodDeclaration origin) {
+    protected Type getInputType(MethodDeclaration origin) {
         List<ASTNode> mostDifferentNodes = null;
         // 共通部分が一番少ないメソッドを探す
         for (TestCase testCase : testSuite.getTestCases()) {
@@ -406,35 +402,34 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 inputRelatedNodes.add(node);
             }
         }
-        String ret = "Object";
-        if (ASTUtils.allStringLiteral(inputRelatedNodes)) {
-            ret = "String";
-        } else if (ASTUtils.allNumberLiteral(inputRelatedNodes)) {
-            ret = "double";
-        } else if (ASTUtils.allCharacterLiteral(inputRelatedNodes)) {
-            ret = "char";
-        } else if (ASTUtils.allBooleanLiteral(inputRelatedNodes)) {
-            ret = "boolean";
-        }
-        return ret;
-    }
-
-    public Type getInputType(MethodDeclaration origin) {
-        String type = _getInputType(origin);
         Type ret;
-        if (type.equals("char")) {
-            ret = ast.newPrimitiveType(PrimitiveType.CHAR);
-        } else if (type.equals("boolean")) {
-            ret = ast.newPrimitiveType(PrimitiveType.BOOLEAN);
-        } else if (type.equals("double")) {
-            ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
+        if (1 < inputRelatedNodes.size()) {
+            ret = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
+            if (ASTUtils.allStringLiteral(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newSimpleType(ast.newName("String")));
+            } else if (ASTUtils.allNumberLiteral(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.DOUBLE));
+            } else if (ASTUtils.allCharacterLiteral(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.CHAR));
+            } else if (ASTUtils.allBooleanLiteral(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BOOLEAN));
+            }
         } else {
-            ret = ast.newSimpleType(ast.newName(type));
+            ret = ast.newSimpleType(ast.newName("Object"));
+            if (ASTUtils.allStringLiteral(inputRelatedNodes)) {
+                ret = ast.newSimpleType(ast.newName("String"));
+            } else if (ASTUtils.allNumberLiteral(inputRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
+            } else if (ASTUtils.allCharacterLiteral(inputRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.CHAR);
+            } else if (ASTUtils.allBooleanLiteral(inputRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.BOOLEAN);
+            }
         }
         return ret;
     }
 
-    public String _getExpectedType(MethodDeclaration origin) {
+    public Type getExpectedType(MethodDeclaration origin) {
         List<ASTNode> mostDifferentNodes = null;
         // 共通部分が一番少ないメソッドを探す
         for (TestCase testCase : testSuite.getTestCases()) {
@@ -457,33 +452,33 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 expectedRelatedNodes.add(node);
             }
         }
-        String ret = "Object";
-        if (ASTUtils.allStringLiteral(expectedRelatedNodes)) {
-            ret = "String";
-        } else if (ASTUtils.allNumberLiteral(expectedRelatedNodes)) {
-            ret = "double";
-        } else if (ASTUtils.allCharacterLiteral(expectedRelatedNodes)) {
-            ret = "char";
-        } else if (ASTUtils.allBooleanLiteral(expectedRelatedNodes)) {
-            ret = "boolean";
+        Type ret;
+        if (1 < expectedRelatedNodes.size()) {
+            ret = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
+            if (ASTUtils.allStringLiteral(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newSimpleType(ast.newName("String")));
+            } else if (ASTUtils.allNumberLiteral(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.DOUBLE));
+            } else if (ASTUtils.allCharacterLiteral(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.CHAR));
+            } else if (ASTUtils.allBooleanLiteral(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BOOLEAN));
+            }
+        } else {
+            ret = ast.newSimpleType(ast.newName("Object"));
+            if (ASTUtils.allStringLiteral(expectedRelatedNodes)) {
+                ret = ast.newSimpleType(ast.newName("String"));
+            } else if (ASTUtils.allNumberLiteral(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
+            } else if (ASTUtils.allCharacterLiteral(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.CHAR);
+            } else if (ASTUtils.allBooleanLiteral(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.BOOLEAN);
+            }
         }
         return ret;
     }
 
-    public Type getExpectedType(MethodDeclaration origin) {
-        String type = _getExpectedType(origin);
-        Type ret;
-        if (type.equals("char")) {
-            ret = ast.newPrimitiveType(PrimitiveType.CHAR);
-        } else if (type.equals("boolean")) {
-            ret = ast.newPrimitiveType(PrimitiveType.BOOLEAN);
-        } else if (type.equals("double")) {
-            ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
-        } else {
-            ret = ast.newSimpleType(ast.newName(type));
-        }
-        return ret;
-    }
 
     private boolean isInExpectedDeclaringNode(MethodDeclaration origin, ASTNode node) {
         List<MethodInvocation> assertions = ASTUtils.getAllAssertions(origin);
@@ -505,5 +500,26 @@ public class ParameterizedModifierBase extends AbstractModifier {
             }
         }
         return false;
+    }
+
+    protected void deleteExistingFieldDeclarations() {
+        TypeDeclaration modified = getTargetType();
+        ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+        for (FieldDeclaration fieldDeclaration : modified.getFields()) {
+            listRewrite.remove(fieldDeclaration, null);
+        }
+    }
+
+    protected void deleteExistingMethodDeclarations(MethodDeclaration origin) {
+        TypeDeclaration modified = getTargetType();
+        ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+        for (MethodDeclaration methodDeclaration : modified.getMethods()) {
+            if (methodDeclaration.equals(origin)) {
+                continue;
+            }
+            if (methodDeclaration.isConstructor() || methodDeclaration.getName().toString().startsWith("test")) {
+                listRewrite.remove(methodDeclaration, null);
+            }
+        }
     }
 }

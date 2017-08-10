@@ -22,7 +22,7 @@ public class AllAssertionVisitor extends ASTVisitor {
 
     @Override
     public boolean visit(MethodInvocation node) {
-        if (node.getName().toString().startsWith("assert") && !assertions.contains(node)) {
+        if (ASTUtils.isAssetionMethod(node) && !assertions.contains(node)) {
             assertions.add(node);
         }
         return super.visit(node);

@@ -1,9 +1,7 @@
 package jp.mzw.autoput.ast;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.eclipse.jdt.core.dom.*;
 
-import javax.print.DocFlavor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -193,6 +191,13 @@ public class ASTUtils {
             }
         }
         return true;
+    }
+
+    public static boolean isAssetionMethod(MethodInvocation method) {
+        if (method == null) {
+            return false;
+        }
+        return method.getName().toString().startsWith("assert");
     }
 
     /*
