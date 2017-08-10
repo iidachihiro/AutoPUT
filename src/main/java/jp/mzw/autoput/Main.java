@@ -3,7 +3,6 @@ package jp.mzw.autoput;
 import jp.mzw.autoput.core.Project;
 
 import jp.mzw.autoput.core.TestSuite;
-import jp.mzw.autoput.modifier.ParamterizedModifier;
 import jp.mzw.autoput.modifier.UseParametersAnnotation;
 import org.eclipse.jface.text.BadLocationException;
 import org.slf4j.Logger;
@@ -29,10 +28,10 @@ public class Main {
             }
 //            UseConstVariable useConstVariable = new UseConstVariable(testSuite);
 //            useConstVariable.checkConstVariavbles();
-//            UseParametersAnnotation useParametersAnnotation = new UseParametersAnnotation(testSuite);
-//            useParametersAnnotation.useParametersAnnotation();
-            ParamterizedModifier paramterizedModifier = new ParamterizedModifier(testSuite);
-            paramterizedModifier.paramterized();
+            UseParametersAnnotation useParametersAnnotation = new UseParametersAnnotation(testSuite);
+            useParametersAnnotation.useParametersAnnotation();
+//            ParamterizedModifier paramterizedModifier = new ParamterizedModifier(testSuite);
+//            paramterizedModifier.paramterized();
         }
     }
 
