@@ -33,13 +33,4 @@ public class Utils {
         }
         return ret;
     }
-
-    public static boolean isAssertionMethod(Expression node) {
-        if (!(node instanceof MethodInvocation)) {
-            return false;
-        }
-        MethodInvocation method = (MethodInvocation) node;
-        return method.getName().toString().startsWith("assert");
-    }
-
 }
