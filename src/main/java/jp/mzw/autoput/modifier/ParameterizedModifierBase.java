@@ -37,7 +37,6 @@ public class ParameterizedModifierBase extends AbstractModifier {
     }
 
     @Override
-    // super classに持たせていいかも
     public void modify(MethodDeclaration origin) {
         rewrite = ASTRewrite.create(ast);
         // テストメソッドを作成(既存のテストメソッドを修正する)
@@ -133,17 +132,17 @@ public class ParameterizedModifierBase extends AbstractModifier {
         modifiersListRewrite.insertLast(ASTUtils.getPublicModifier(ast), null);
         // 引数を設定
         // inputの型と名前を設定
-        SingleVariableDeclaration arg = ast.newSingleVariableDeclaration();
-        arg.setType(getInputType(origin));
-        arg.setName(ast.newSimpleName(INPUT_VAR));
+        SingleVariableDeclaration input = ast.newSingleVariableDeclaration();
+        input.setType(getInputType(origin));
+        input.setName(ast.newSimpleName(INPUT_VAR));
         // expectedの型と名前を設定
-        arg = ast.newSingleVariableDeclaration();
-        arg.setType(getExpectedType(origin));
-        arg.setName(ast.newSimpleName(EXPECTED_VAR));
+        SingleVariableDeclaration expected = ast.newSingleVariableDeclaration();
+        expected.setType(getExpectedType(origin));
+        expected.setName(ast.newSimpleName(EXPECTED_VAR));
         // 引数を追加
         ListRewrite parametersListRewrite = rewrite.getListRewrite(constructor, MethodDeclaration.PARAMETERS_PROPERTY);
-        parametersListRewrite.insertLast(arg, null);
-        parametersListRewrite.insertLast(arg, null);
+        parametersListRewrite.insertLast(input, null);
+        parametersListRewrite.insertLast(expected, null);
         // bodyを設定
         Block body = ast.newBlock();
         ExpressionStatement inputStatement = createConstructorBlockAssignment(INPUT_VAR);
@@ -247,7 +246,6 @@ public class ParameterizedModifierBase extends AbstractModifier {
         for (TestCase testCase : testSuite.getTestCases()) {
             MethodDeclaration method = testCase.getMethodDeclaration();
             if (similarAST(origin, method)) {
-                System.out.println("Similar method: " + method);
                 similarMethods.add(method);
                 if (mostDifferentNodes == null) {
                     mostDifferentNodes = ASTUtils.getDifferentNodes(method, origin);

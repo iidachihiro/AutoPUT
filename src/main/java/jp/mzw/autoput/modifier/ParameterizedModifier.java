@@ -10,10 +10,10 @@ import java.util.*;
 /**
  * Created by TK on 7/24/17.
  */
-public class UseParametersAnnotation extends ParameterizedModifierBase {
-    protected static Logger LOGGER = LoggerFactory.getLogger(UseParametersAnnotation.class);
+public class ParameterizedModifier extends ParameterizedModifierBase {
+    protected static Logger LOGGER = LoggerFactory.getLogger(ParameterizedModifier.class);
 
-    public UseParametersAnnotation(TestSuite testSuite) {
+    public ParameterizedModifier(TestSuite testSuite) {
         super(testSuite);
     }
 
@@ -21,8 +21,8 @@ public class UseParametersAnnotation extends ParameterizedModifierBase {
         Map<MethodDeclaration, List<MethodDeclaration>> detected = detect();
         for (MethodDeclaration origin : detected.keySet()) {
             System.out.println(origin.getName());
-            if (!origin.getName().toString().equals("testParseSimpleWithDecimals")) {
-//                continue;
+            if (origin.getName().toString().equals("testParseSimpleWithDecimals")) {
+                continue;
             }
             modify(origin);
         }

@@ -16,9 +16,6 @@ public class ASTUtils {
     public static Modifier getPrivateModifier(AST ast) {
         return ast.newModifier(Modifier.ModifierKeyword.PRIVATE_KEYWORD);
     }
-    public static Modifier getProtectedModifier(AST ast) {
-        return ast.newModifier(Modifier.ModifierKeyword.PROTECTED_KEYWORD);
-    }
     public static Modifier getStaticModifier(AST ast) {
         return ast.newModifier(Modifier.ModifierKeyword.STATIC_KEYWORD);
     }
@@ -28,9 +25,6 @@ public class ASTUtils {
     }
     public static MarkerAnnotation getParametersAnnotation(AST ast) {
         return createMarkerAnnotation(ast, "Parameters");
-    }
-    public static MarkerAnnotation getTestAnnotation(AST ast) {
-        return createMarkerAnnotation(ast, "Test");
     }
 
     public static List<MethodInvocation> getAssertionMethods(ASTNode node) {
@@ -44,39 +38,11 @@ public class ASTUtils {
         node.accept(visitor);
         return visitor.getSimpleNames();
     }
-
-    public static Statement getParentStatement(ASTNode node) {
-        if (node instanceof Statement) {
-            return (Statement) node;
-        }
-        while (node.getParent() != null) {
-            node = node.getParent();
-            if (node instanceof Statement) {
-                return (Statement) node;
-            }
-        }
-        return null;
-    }
-
-    public static VariableDeclarationFragment getParentVariableDeclarationFragment(ASTNode node) {
-        if (node instanceof VariableDeclarationFragment) {
-            return (VariableDeclarationFragment) node;
-        }
-        while (node.getParent() != null) {
-            node = node.getParent();
-            if (node instanceof VariableDeclarationFragment) {
-                return (VariableDeclarationFragment) node;
-            }
-        }
-        return null;
-    }
-
     public static List<ASTNode> getAllNodes(ASTNode node) {
         AllElementsFindVisitor visitor = new AllElementsFindVisitor();
         node.accept(visitor);
         return visitor.getNodes();
     }
-
     public static List<ASTNode> getDifferentNodes(ASTNode src, ASTNode dst) {
         List<ASTNode> ret = new ArrayList<>();
         List<ASTNode> nodes1 = ASTUtils.getAllNodes(src);
@@ -112,6 +78,14 @@ public class ASTUtils {
                 StringLiteral stringLiteral2 = (StringLiteral) node2;
                 if (!stringLiteral1.getLiteralValue().equals(stringLiteral2.getLiteralValue())) {
                     ret.add(node2);
+                }
+            } else if (node1 instanceof QualifiedName) {
+                QualifiedName qualifiedName1 = (QualifiedName) node1;
+                QualifiedName qualifiedName2 = (QualifiedName) node2;
+                if (qualifiedName1.getQualifier().toString().equals(qualifiedName2.getQualifier().toString())
+                        && qualifiedName1.resolveTypeBinding().getName().equals(qualifiedName2.resolveTypeBinding().getName())
+                        && !qualifiedName1.getName().toString().equals(qualifiedName2.getName().toString())) {
+                    ret.add(qualifiedName2);
                 }
             }
         }
@@ -151,6 +125,13 @@ public class ASTUtils {
         }
         for (ASTNode node : nodes) {
             if (!(node instanceof StringLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding().getName().equals("String")) {
+                    continue;
+                }
                 return false;
             }
         }
@@ -163,6 +144,14 @@ public class ASTUtils {
         }
         for (ASTNode node : nodes) {
             if (!(node instanceof NumberLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                String type = expression.resolveTypeBinding().getName();
+                if (type.equals("int") || type.equals("double")) {
+                    continue;
+                }
                 return false;
             }
         }
@@ -175,6 +164,13 @@ public class ASTUtils {
         }
         for (ASTNode node : nodes) {
             if (!(node instanceof CharacterLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding().getName().equals("char")) {
+                    continue;
+                }
                 return false;
             }
         }
@@ -187,6 +183,13 @@ public class ASTUtils {
         }
         for (ASTNode node : nodes) {
             if (!(node instanceof BooleanLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding().getName().equals("boolean")) {
+                    continue;
+                }
                 return false;
             }
         }
