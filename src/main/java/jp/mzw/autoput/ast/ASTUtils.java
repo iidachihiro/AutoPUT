@@ -200,7 +200,14 @@ public class ASTUtils {
         if (method == null) {
             return false;
         }
-        return method.getName().toString().startsWith("assert");
+        if (!method.getName().toString().startsWith("assert")) {
+            return false;
+        }
+        IMethodBinding methodBinding = method.resolveMethodBinding();
+        if (methodBinding == null) {
+            return false;
+        }
+        return method.resolveTypeBinding().getName().equals("Assert");
     }
 
     /*
