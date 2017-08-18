@@ -1,5 +1,6 @@
 package jp.mzw.autoput.core;
 
+import jp.mzw.autoput.ast.ASTUtils;
 import jp.mzw.autoput.ast.AllMethodFindVisitor;
 import jp.mzw.autoput.ast.ClassDeclarationFindVisitor;
 import org.eclipse.jdt.core.dom.*;
@@ -61,6 +62,9 @@ public class TestSuite {
         cu.accept(visitor);
         List<MethodDeclaration> methods = visitor.getFoundMethods();
         for (MethodDeclaration method : methods) {
+            if (!method.getName().getIdentifier().startsWith("test") && !method.getName().getIdentifier().endsWith("Test")) {
+                continue;
+            }
             TestCase testcase = new TestCase(method.getName().getIdentifier(), testClassName, method, cu, this);
             testCases.add(testcase);
         }
