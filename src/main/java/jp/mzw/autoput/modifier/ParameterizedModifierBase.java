@@ -1,6 +1,7 @@
 package jp.mzw.autoput.modifier;
 
 import jp.mzw.autoput.ast.ASTUtils;
+import jp.mzw.autoput.core.Project;
 import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
 import org.eclipse.jdt.core.dom.*;
@@ -28,31 +29,44 @@ public class ParameterizedModifierBase extends AbstractModifier {
     protected static final String DATA_METHOD = "data";
 
     protected AST ast;
+    protected CompilationUnit cu;
     protected ASTRewrite rewrite;
 
 
+    public ParameterizedModifierBase(Project project) {
+        super(project);
+    }
+
     public ParameterizedModifierBase(TestSuite testSuite) {
         super(testSuite);
-        ast = getCompilationUnit().getAST();
+    }
+
+    public CompilationUnit getCompilationUnit() {
+        return testSuite.getCu();
     }
 
     @Override
-    public void modify(MethodDeclaration origin) {
+    public void modify(MethodDeclaration method) {
+        cu = getCompilationUnit();
+        ast = cu.getAST();
+        System.out.println(method);
+        System.out.println("-------------------");
         rewrite = ASTRewrite.create(ast);
+
         // テストメソッドを作成(既存のテストメソッドを修正する)
-        modifyTestMethod(origin);
+        modifyTestMethod(method);
         // dataメソッドを作成
-        createDataMethod(origin);
+        createDataMethod(method);
         // 既存のテストメソッドとコンストラクタを全て削除
-        deleteExistingMethodDeclarations(origin);
+        deleteExistingMethodDeclarations(method);
         // 既存のフィールド変数を削除
         deleteExistingFieldDeclarations();
         // import文を追加
         addImportDeclarations();
         // フィールド変数を追加
-        addFieldDeclarations(origin);
+        addFieldDeclarations(method);
         // コンストラクタを追加
-        addConstructor(origin);
+        addConstructor(method);
         // クラス名を変更，修飾子も追加
         modifyClassInfo();
 
@@ -67,7 +81,10 @@ public class ParameterizedModifierBase extends AbstractModifier {
         } catch (IOException | BadLocationException e) {
             e.printStackTrace();
         }
-
+        // initialize
+        this.cu = null;
+        this.ast = null;
+        this.rewrite = null;
         return;
     }
 
@@ -189,7 +206,6 @@ public class ParameterizedModifierBase extends AbstractModifier {
         listRewrite.insertLast(method, null);
     }
 
-    /* =========================== 実装途中 ======================================= */
     protected void createDataMethod(MethodDeclaration origin) {
         MethodDeclaration method = ast.newMethodDeclaration();
         method.setConstructor(false);
@@ -516,6 +532,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 continue;
             }
             if (methodDeclaration.isConstructor() || methodDeclaration.getName().toString().startsWith("test")) {
+                System.out.println("Remove " + methodDeclaration.getName());
                 listRewrite.remove(methodDeclaration, null);
             }
         }

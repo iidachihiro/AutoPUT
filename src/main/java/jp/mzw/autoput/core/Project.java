@@ -74,7 +74,7 @@ public class Project {
         return this;
     }
 
-    public static Map<String, CompilationUnit> getFileUnitMap(File subjectDir) {
+    private static Map<String, CompilationUnit> getFileUnitMap(File subjectDir) {
         ASTParser parser = ASTParser.newParser(AST.JLS8);
         parser.setResolveBindings(true);
         parser.setBindingsRecovery(true);
@@ -90,7 +90,7 @@ public class Project {
         return units;
     }
 
-    protected static String[] getSources(File subjectDir) {
+    private static String[] getSources(File subjectDir) {
         List<File> files = new ArrayList<>();
         files.addAll(Utils.getFiles(new File(subjectDir, "src/main/java")));
         files.addAll(Utils.getFiles(new File(subjectDir, "src/test/java")));
@@ -105,7 +105,7 @@ public class Project {
         return sources;
     }
 
-    protected static String[] getTestFiles(File subjectDir) {
+    public static String[] getTestFiles(File subjectDir) {
         List<File> files = new ArrayList<File>();
         files.addAll(Utils.getFiles(new File(subjectDir, "src/test/java")));
         String[] sources = new String[files.size()];
@@ -119,7 +119,7 @@ public class Project {
         return sources;
     }
 
-    private void prepare() {
+    public void prepare() {
         String pathToSubjectDir = String.join("/", pathToSubjectsDir, projectId);
         File sujectDir = new File(pathToSubjectDir);
         this.compilationUnits = getFileUnitMap(sujectDir);

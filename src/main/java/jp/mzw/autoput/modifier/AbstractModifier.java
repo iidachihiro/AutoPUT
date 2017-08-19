@@ -1,11 +1,24 @@
 package jp.mzw.autoput.modifier;
 
 import jp.mzw.autoput.ast.ASTUtils;
+import jp.mzw.autoput.core.Project;
+import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.eclipse.jdt.core.dom.ASTNode;
-import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,20 +28,87 @@ import java.util.Map;
  * Created by TK on 7/28/17.
  */
 public abstract class AbstractModifier {
+    protected Project project;
     protected TestSuite testSuite;
 
+    private static final Path DETECT_RESULT = Paths.get("detect_result.csv");
+
+    public AbstractModifier(Project project) {
+        this.project = project;
+    }
     public AbstractModifier(TestSuite testSuite) {
         this.testSuite = testSuite;
-
     }
 
-    public CompilationUnit getCompilationUnit() {
-        return this.testSuite.getCu();
+    public List<TestSuite> getTestSuites() {
+        project.prepare();
+        return project.getTestSuites();
     }
 
-    abstract public void modify(MethodDeclaration origin);
+    abstract public void modify(MethodDeclaration method);
 
-    public Map<MethodDeclaration, List<MethodDeclaration>> detect() {
+    public void modify() {
+        // DETECT_RESULTを読み込む
+        List<CSVRecord> records = _getDetectResults();
+        // modifyしていく
+        for (CSVRecord record : records) {
+            String testSuiteName = record.get(0);
+            String testCaseName  = record.get(1);
+            for (TestSuite testSuite : getTestSuites()) {
+                if (!testSuite.getTestClassName().equals(testSuiteName)) {
+                    continue;
+                }
+                for (TestCase testCase : testSuite.getTestCases()) {
+                    if (testCase.getName().equals(testCaseName)) {
+                        new ParameterizedModifierBase(testSuite).modify(testCase.getMethodDeclaration());
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private List<CSVRecord> _getDetectResults() {
+        List<CSVRecord> ret = new ArrayList<>();
+        try (BufferedReader br = Files.newBufferedReader(DETECT_RESULT, StandardCharsets.UTF_8)) {
+            CSVParser parser = CSVFormat.DEFAULT.parse(br);
+            ret = parser.getRecords();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+
+
+
+    public void detect() {
+        List<String> contents = new ArrayList<>();
+        for (TestSuite testSuite : getTestSuites()) {
+            Map<MethodDeclaration, List<MethodDeclaration>> detected = detect(testSuite);
+            for (MethodDeclaration method : detected.keySet()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(String.join(",", testSuite.getTestClassName(), method.getName().getIdentifier()));
+                for (MethodDeclaration similarMethod : detected.get(method)) {
+                    sb.append(",").append(similarMethod.getName().getIdentifier());
+                }
+                sb.append("\n");
+                contents.add(sb.toString());
+            }
+        }
+        output(contents);
+    }
+
+    private void output(List<String> contents) {
+        try (BufferedWriter bw = Files.newBufferedWriter(DETECT_RESULT, StandardCharsets.UTF_8)) {
+            for (String content : contents) {
+                bw.write(content);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Map<MethodDeclaration, List<MethodDeclaration>> detect(TestSuite testSuite) {
         int size = testSuite.getTestCases().size();
         Map<MethodDeclaration, List<MethodDeclaration>> detected = new HashMap<>();
         boolean[] registered = new boolean[size];
