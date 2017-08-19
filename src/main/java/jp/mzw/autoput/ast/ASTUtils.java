@@ -83,7 +83,6 @@ public class ASTUtils {
                 QualifiedName qualifiedName1 = (QualifiedName) node1;
                 QualifiedName qualifiedName2 = (QualifiedName) node2;
                 if (qualifiedName1.getQualifier().toString().equals(qualifiedName2.getQualifier().toString())
-                        && qualifiedName1.resolveTypeBinding().getName().equals(qualifiedName2.resolveTypeBinding().getName())
                         && !qualifiedName1.getName().toString().equals(qualifiedName2.getName().toString())) {
                     ret.add(qualifiedName2);
                 }
@@ -129,6 +128,9 @@ public class ASTUtils {
                     return false;
                 }
                 Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
                 if (expression.resolveTypeBinding().getName().equals("String")) {
                     continue;
                 }
@@ -148,6 +150,9 @@ public class ASTUtils {
                     return false;
                 }
                 Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
                 String type = expression.resolveTypeBinding().getName();
                 if (type.equals("int") || type.equals("double")) {
                     continue;
@@ -168,6 +173,9 @@ public class ASTUtils {
                     return false;
                 }
                 Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
                 if (expression.resolveTypeBinding().getName().equals("char")) {
                     continue;
                 }
@@ -187,6 +195,9 @@ public class ASTUtils {
                     return false;
                 }
                 Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
                 if (expression.resolveTypeBinding().getName().equals("boolean")) {
                     continue;
                 }
