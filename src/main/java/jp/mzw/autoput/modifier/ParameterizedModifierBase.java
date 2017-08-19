@@ -11,7 +11,10 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.TextEdit;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,15 +47,23 @@ public class ParameterizedModifierBase extends AbstractModifier {
     public CompilationUnit getCompilationUnit() {
         return testSuite.getCu();
     }
+    
+    protected void _output(String methodName, String content) {
+        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(OUTPUT_PATH + "/" 
+                + testSuite.getTestClassName() + "_" + methodName + ".txt"))) {
+            bw.write(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     public void modify(MethodDeclaration method) {
         cu = getCompilationUnit();
         ast = cu.getAST();
-        System.out.println(method);
-        System.out.println("-------------------");
+        String methodName = method.getName().getIdentifier();
+        System.out.println(methodName);
         rewrite = ASTRewrite.create(ast);
-
         // テストメソッドを作成(既存のテストメソッドを修正する)
         modifyTestMethod(method);
         // dataメソッドを作成
@@ -75,9 +86,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
             Document document = new Document(testSuite.getTestSources());
             TextEdit edit = rewrite.rewriteAST(document, null);
             edit.apply(document);
-            System.out.println("=========================");
-            System.out.println(document.get());
-            System.out.println("=========================");
+            _output(methodName, document.get());
         } catch (IOException | BadLocationException e) {
             e.printStackTrace();
         }
@@ -532,7 +541,6 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 continue;
             }
             if (methodDeclaration.isConstructor() || methodDeclaration.getName().toString().startsWith("test")) {
-                System.out.println("Remove " + methodDeclaration.getName());
                 listRewrite.remove(methodDeclaration, null);
             }
         }

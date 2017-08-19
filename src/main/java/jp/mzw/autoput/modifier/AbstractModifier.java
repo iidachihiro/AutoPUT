@@ -32,6 +32,7 @@ public abstract class AbstractModifier {
     protected TestSuite testSuite;
 
     private static final Path DETECT_RESULT = Paths.get("detect_result.csv");
+    protected static final String OUTPUT_PATH = "output";
 
     public AbstractModifier(Project project) {
         this.project = project;
@@ -54,6 +55,10 @@ public abstract class AbstractModifier {
         for (CSVRecord record : records) {
             String testSuiteName = record.get(0);
             String testCaseName  = record.get(1);
+            if (Files.exists(Paths.get(OUTPUT_PATH + "/"
+                    + testSuiteName + "_" + testCaseName + ".txt"))) {
+                continue;
+            }
             for (TestSuite testSuite : getTestSuites()) {
                 if (!testSuite.getTestClassName().equals(testSuiteName)) {
                     continue;
@@ -95,10 +100,10 @@ public abstract class AbstractModifier {
                 contents.add(sb.toString());
             }
         }
-        output(contents);
+        _outputDetectResults(contents);
     }
 
-    private void output(List<String> contents) {
+    private void _outputDetectResults(List<String> contents) {
         try (BufferedWriter bw = Files.newBufferedWriter(DETECT_RESULT, StandardCharsets.UTF_8)) {
             for (String content : contents) {
                 bw.write(content);
