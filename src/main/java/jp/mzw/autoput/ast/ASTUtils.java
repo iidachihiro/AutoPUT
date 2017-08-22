@@ -224,6 +224,9 @@ public class ASTUtils {
         if (methodBinding == null) {
             return false;
         }
+        if (method.resolveTypeBinding() == null) {
+            return false;
+        }
         return method.resolveTypeBinding().getName().equals("Assert");
     }
 

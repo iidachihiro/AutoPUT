@@ -119,6 +119,9 @@ public abstract class AbstractModifier {
         }
         List<String> contents = new ArrayList<>();
         for (TestSuite testSuite : getTestSuites()) {
+            if (testSuite.getClassDeclaration() == null) {
+                continue;
+            }
             if (testSuite.alreadyParameterized()) {
                 continue;
             }
