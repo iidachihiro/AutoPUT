@@ -119,6 +119,9 @@ public abstract class AbstractModifier {
         }
         List<String> contents = new ArrayList<>();
         for (TestSuite testSuite : getTestSuites()) {
+            if (testSuite.alreadyParameterized()) {
+                continue;
+            }
             Map<MethodDeclaration, List<MethodDeclaration>> detected = detect(testSuite);
             for (MethodDeclaration method : detected.keySet()) {
                 StringBuilder sb = new StringBuilder();

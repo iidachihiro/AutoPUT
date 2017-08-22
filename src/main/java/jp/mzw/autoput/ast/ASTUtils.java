@@ -33,6 +33,12 @@ public class ASTUtils {
         return visitor.getAssertions();
     }
 
+    public static List<Annotation> getAnnotations(ASTNode node) {
+        AnnotationVisitor visitor = new AnnotationVisitor();
+        node.accept(visitor);
+        return visitor.getAnnotations();
+    }
+
     public static List<SimpleName> getAllSimpleNames(ASTNode node) {
         AllSimpleNameVisitor visitor = new AllSimpleNameVisitor();
         node.accept(visitor);
