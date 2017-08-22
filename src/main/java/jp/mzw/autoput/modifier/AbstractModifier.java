@@ -9,15 +9,13 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.jdt.core.dom.MethodInvocation;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +29,9 @@ public abstract class AbstractModifier {
     protected Project project;
     protected TestSuite testSuite;
 
-    private static final Path DETECT_RESULT = Paths.get("detect_result.csv");
+    private static final String DETECT_RESULT = "detect_result.csv";
+    private static final String DETECT_DIR = "detect";
+    private static final String CONVERT_DIR = "convert";
     protected static final String OUTPUT_PATH = "output";
 
     public AbstractModifier(Project project) {
@@ -46,6 +46,17 @@ public abstract class AbstractModifier {
         return project.getTestSuites();
     }
 
+    protected String getDetectResultDir() {
+        return String.join("/", OUTPUT_PATH, project.getProjectId(), DETECT_DIR);
+    }
+    protected String getDetectResultPath() {
+        return String.join("/", OUTPUT_PATH, project.getProjectId(), DETECT_DIR, DETECT_RESULT);
+    }
+
+    protected String getConvertResultDir() {
+        return String.join("/", OUTPUT_PATH, project.getProjectId(), CONVERT_DIR);
+    }
+
     abstract public void modify(MethodDeclaration method);
 
     public void modify() {
@@ -55,9 +66,17 @@ public abstract class AbstractModifier {
         for (CSVRecord record : records) {
             String testSuiteName = record.get(0);
             String testCaseName  = record.get(1);
-            if (Files.exists(Paths.get(OUTPUT_PATH + "/"
+            if (Files.exists(Paths.get(getConvertResultDir() + "/"
                     + testSuiteName + "_" + testCaseName + ".txt"))) {
                 continue;
+            } else {
+                try {
+                    Files.createDirectories(Paths.get(getConvertResultDir()));
+                    Files.createFile(Paths.get(getConvertResultDir() + "/"
+                            + testSuiteName + "_" + testCaseName + ".txt"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
             for (TestSuite testSuite : getTestSuites()) {
                 if (!testSuite.getTestClassName().equals(testSuiteName)) {
@@ -65,7 +84,7 @@ public abstract class AbstractModifier {
                 }
                 for (TestCase testCase : testSuite.getTestCases()) {
                     if (testCase.getName().equals(testCaseName)) {
-                        new ParameterizedModifierBase(testSuite).modify(testCase.getMethodDeclaration());
+                        new ParameterizedModifierBase(project, testSuite).modify(testCase.getMethodDeclaration());
                         break;
                     }
                 }
@@ -75,7 +94,7 @@ public abstract class AbstractModifier {
 
     private List<CSVRecord> _getDetectResults() {
         List<CSVRecord> ret = new ArrayList<>();
-        try (BufferedReader br = Files.newBufferedReader(DETECT_RESULT, StandardCharsets.UTF_8)) {
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(getDetectResultPath()), StandardCharsets.UTF_8)) {
             CSVParser parser = CSVFormat.DEFAULT.parse(br);
             ret = parser.getRecords();
         } catch (IOException e) {
@@ -87,6 +106,17 @@ public abstract class AbstractModifier {
 
 
     public void detect() {
+        if (Files.exists(Paths.get(getDetectResultPath()))) {
+            System.out.println("DetectResult already exists!");
+            return;
+        } else {
+            try {
+                Files.createDirectories(Paths.get(getDetectResultDir()));
+                Files.createFile(Paths.get(getDetectResultPath()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         List<String> contents = new ArrayList<>();
         for (TestSuite testSuite : getTestSuites()) {
             Map<MethodDeclaration, List<MethodDeclaration>> detected = detect(testSuite);
@@ -104,7 +134,7 @@ public abstract class AbstractModifier {
     }
 
     private void _outputDetectResults(List<String> contents) {
-        try (BufferedWriter bw = Files.newBufferedWriter(DETECT_RESULT, StandardCharsets.UTF_8)) {
+        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(getDetectResultPath()), StandardCharsets.UTF_8)) {
             for (String content : contents) {
                 bw.write(content);
             }
@@ -155,6 +185,13 @@ public abstract class AbstractModifier {
             ASTNode tmp2 = nodes2.get(i);
             if (!tmp1.getClass().equals(tmp2.getClass())) {
                 return false;
+            }
+            if (tmp1 instanceof MethodInvocation) {
+                MethodInvocation method1 = (MethodInvocation) tmp1;
+                MethodInvocation method2 = (MethodInvocation) tmp2;
+                if (!method1.getName().getIdentifier().equals(method2.getName().getIdentifier())) {
+                    return false;
+                }
             }
         }
         return true;

@@ -44,12 +44,17 @@ public class ParameterizedModifierBase extends AbstractModifier {
         super(testSuite);
     }
 
+    public ParameterizedModifierBase(Project project, TestSuite testSuite) {
+        super(testSuite);
+        this.project = project;
+    }
+
     public CompilationUnit getCompilationUnit() {
         return testSuite.getCu();
     }
     
-    protected void _output(String methodName, String content) {
-        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(OUTPUT_PATH + "/" 
+    protected void outputConvertResult(String methodName, String content) {
+        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(getConvertResultDir() + "/"
                 + testSuite.getTestClassName() + "_" + methodName + ".txt"))) {
             bw.write(content);
         } catch (IOException e) {
@@ -86,7 +91,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
             Document document = new Document(testSuite.getTestSources());
             TextEdit edit = rewrite.rewriteAST(document, null);
             edit.apply(document);
-            _output(methodName, document.get());
+            outputConvertResult(methodName, document.get());
         } catch (IOException | BadLocationException e) {
             e.printStackTrace();
         }

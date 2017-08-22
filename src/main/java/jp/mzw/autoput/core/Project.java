@@ -94,6 +94,9 @@ public class Project {
         List<File> files = new ArrayList<>();
         files.addAll(Utils.getFiles(new File(subjectDir, "src/main/java")));
         files.addAll(Utils.getFiles(new File(subjectDir, "src/test/java")));
+        // For JDOM
+        files.addAll(Utils.getFiles(new File(subjectDir, "core/src/java")));
+        files.addAll(Utils.getFiles(new File(subjectDir, "test/src/java")));
         String[] sources = new String[files.size()];
         try {
             for (int i = 0; i < files.size(); i++) {
@@ -108,6 +111,8 @@ public class Project {
     public static String[] getTestFiles(File subjectDir) {
         List<File> files = new ArrayList<File>();
         files.addAll(Utils.getFiles(new File(subjectDir, "src/test/java")));
+        // For JDOM
+        files.addAll(Utils.getFiles(new File(subjectDir, "test/src/java")));
         String[] sources = new String[files.size()];
         try {
             for (int i = 0; i < files.size(); i++) {
@@ -121,10 +126,10 @@ public class Project {
 
     public void prepare() {
         String pathToSubjectDir = String.join("/", pathToSubjectsDir, projectId);
-        File sujectDir = new File(pathToSubjectDir);
-        this.compilationUnits = getFileUnitMap(sujectDir);
+        File subjectDir = new File(pathToSubjectDir);
+        this.compilationUnits = getFileUnitMap(subjectDir);
         this.testSuites = new ArrayList<>();
-        String[] testFiles = getTestFiles(sujectDir);
+        String[] testFiles = getTestFiles(subjectDir);
         for (String testFile : testFiles) {
             CompilationUnit cu = compilationUnits.get(testFile);
             if (cu != null) {
