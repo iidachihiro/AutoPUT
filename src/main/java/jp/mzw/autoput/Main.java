@@ -20,10 +20,16 @@ public class Main {
 
     public static void main(String[] args) throws IOException, BadLocationException {
         String projectId = args[0];
+        String command   = args[1];
         Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
         ParameterizedModifier parameterizedModifier = new ParameterizedModifier(project);
-        parameterizedModifier.detect();
-//        parameterizedModifier.modify();
+        if (command.equals("detect")) {
+            parameterizedModifier.detect();
+        } else if (command.equals("convert")) {
+            parameterizedModifier.modify();
+        } else {
+            System.out.println("Wrong Command!");
+        }
     }
 
 }
