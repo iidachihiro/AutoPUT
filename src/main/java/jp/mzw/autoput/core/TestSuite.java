@@ -2,7 +2,6 @@ package jp.mzw.autoput.core;
 
 import jp.mzw.autoput.ast.ASTUtils;
 import jp.mzw.autoput.ast.AllMethodFindVisitor;
-import jp.mzw.autoput.ast.AnnotationVisitor;
 import jp.mzw.autoput.ast.ClassDeclarationFindVisitor;
 import org.eclipse.jdt.core.dom.*;
 import org.slf4j.Logger;
