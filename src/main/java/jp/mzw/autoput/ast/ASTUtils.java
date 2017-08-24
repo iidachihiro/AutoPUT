@@ -49,6 +49,11 @@ public class ASTUtils {
         node.accept(visitor);
         return visitor.getNodes();
     }
+    public static List<MethodDeclaration> getAllMethods(ASTNode node) {
+        AllMethodFindVisitor visitor = new AllMethodFindVisitor();
+        node.accept(visitor);
+        return visitor.getFoundMethods();
+    }
     public static List<ASTNode> getDifferentNodes(ASTNode src, ASTNode dst) {
         List<ASTNode> ret = new ArrayList<>();
         List<ASTNode> nodes1 = ASTUtils.getAllNodes(src);

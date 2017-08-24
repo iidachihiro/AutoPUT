@@ -7,9 +7,7 @@ import jp.mzw.autoput.core.TestSuite;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.eclipse.jdt.core.dom.ASTNode;
-import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.*;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -106,6 +104,16 @@ public abstract class AbstractModifier {
 
 
     public void detect() {
+
+        for (TestSuite testSuite : project.getTestSuites()) {
+            if (!testSuite.getTestClassName().equals("CharsetsTest")) {
+                continue;
+            }
+            CompilationUnit cu = testSuite.getCu();
+            for (MethodDeclaration method : ASTUtils.getAllMethods(cu)) {
+                System.out.println(method.getName() + " Start Line: " + cu.getLineNumber(method.getStartPosition()));
+            }
+        }
         if (Files.exists(Paths.get(getDetectResultPath()))) {
             System.out.println("DetectResult already exists!");
             return;
@@ -180,22 +188,40 @@ public abstract class AbstractModifier {
         return detected;
     }
 
-    protected boolean similarAST(ASTNode node1, ASTNode node2) {
-        List<ASTNode> nodes1 = ASTUtils.getAllNodes(node1);
-        List<ASTNode> nodes2 = ASTUtils.getAllNodes(node2);
+    public static boolean similarAST(ASTNode src1, ASTNode src2) {
+        List<ASTNode> nodes1 = ASTUtils.getAllNodes(src1);
+        List<ASTNode> nodes2 = ASTUtils.getAllNodes(src2);
         if (nodes1.size() != nodes2.size()) {
             return false;
         }
         for (int i = 0; i < nodes1.size(); i++) {
-            ASTNode tmp1 = nodes1.get(i);
-            ASTNode tmp2 = nodes2.get(i);
-            if (!tmp1.getClass().equals(tmp2.getClass())) {
+            ASTNode node1 = nodes1.get(i);
+            ASTNode node2 = nodes2.get(i);
+            if (!node1.getClass().equals(node2.getClass())) {
                 return false;
             }
-            if (tmp1 instanceof MethodInvocation) {
-                MethodInvocation method1 = (MethodInvocation) tmp1;
-                MethodInvocation method2 = (MethodInvocation) tmp2;
-                if (!method1.getName().getIdentifier().equals(method2.getName().getIdentifier())) {
+            if (node1 instanceof MethodInvocation) {
+                MethodInvocation tmp1 = (MethodInvocation) node1;
+                MethodInvocation tmp2 = (MethodInvocation) node2;
+                if (!tmp1.getName().getIdentifier().equals(tmp2.getName().getIdentifier())) {
+                    return false;
+                }
+            } else if (node1 instanceof InfixExpression) {
+                InfixExpression tmp1 = (InfixExpression) node1;
+                InfixExpression tmp2 = (InfixExpression) node2;
+                if (!tmp1.getOperator().equals(tmp2.getOperator())) {
+                    return false;
+                }
+            } else if (node1 instanceof PrefixExpression) {
+                PrefixExpression tmp1 = (PrefixExpression) node1;
+                PrefixExpression tmp2 = (PrefixExpression) node2;
+                if (!tmp1.getOperator().equals(tmp2.getOperator())) {
+                    return false;
+                }
+            } else if (node1 instanceof PostfixExpression) {
+                PostfixExpression tmp1 = (PostfixExpression) node1;
+                PostfixExpression tmp2 = (PostfixExpression) node2;
+                if (!tmp1.getOperator().equals(tmp2.getOperator())) {
                     return false;
                 }
             }
