@@ -218,21 +218,46 @@ public class ASTUtils {
         return true;
     }
 
-    public static boolean isAssetionMethod(MethodInvocation method) {
+    public static boolean isAssertionMethod(MethodInvocation method) {
         if (method == null) {
             return false;
         }
-        if (!method.getName().toString().startsWith("assert")) {
-            return false;
-        }
-        IMethodBinding methodBinding = method.resolveMethodBinding();
-        if (methodBinding == null) {
-            return false;
-        }
+        boolean ret;
         if (method.resolveTypeBinding() == null) {
-            return false;
+            ret = method.getName().toString().startsWith("assert");
+        } else {
+            ret = method.resolveTypeBinding().getName().equals("Assert");
         }
-        return method.resolveTypeBinding().getName().equals("Assert");
+        return ret;
+    }
+
+    public static boolean isLiteralNode(ASTNode node) {
+        return (node instanceof BooleanLiteral) || (node instanceof CharacterLiteral)
+                || (node instanceof NumberLiteral) || (node instanceof StringLiteral) || (node instanceof NullLiteral);
+    }
+
+    public static boolean hasStaticModifier(List<IExtendedModifier> modifiers) {
+        for (IExtendedModifier iExtendedModifier : modifiers) {
+            if (iExtendedModifier.isModifier()) {
+                Modifier modifier = (Modifier) iExtendedModifier;
+                if (modifier.isStatic()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean hasFinalModifier(List<IExtendedModifier> modifiers) {
+        for (IExtendedModifier iExtendedModifier : modifiers) {
+            if (iExtendedModifier.isModifier()) {
+                Modifier modifier = (Modifier) iExtendedModifier;
+                if (modifier.isFinal()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /*

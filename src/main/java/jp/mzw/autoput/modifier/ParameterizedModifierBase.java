@@ -10,6 +10,8 @@ import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.TextEdit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -22,11 +24,12 @@ import java.util.List;
  * Created by TK on 7/28/17.
  */
 public class ParameterizedModifierBase extends AbstractModifier {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ParameterizedModifier.class);
     // ユーザが変更可能
     protected static final String CLASS_NAME = "AutoPUT";
     protected static final String METHOD_NAME = "autoPutTest";
-    protected static final String INPUT_VAR = "input";
-    protected static final String EXPECTED_VAR = "expected";
+    protected static final String INPUT_VAR = "_input";
+    protected static final String EXPECTED_VAR = "_expected";
 
     // 変更不可
     protected static final String DATA_METHOD = "data";
@@ -55,7 +58,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
     
     protected void outputConvertResult(String methodName, String content) {
         try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(getConvertResultDir() + "/"
-                + testSuite.getTestClassName() + "_" + methodName + ".txt"))) {
+                + testSuite.getTestClassName() + "/" + methodName + ".txt"))) {
             bw.write(content);
         } catch (IOException e) {
             e.printStackTrace();
@@ -67,7 +70,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         cu = getCompilationUnit();
         ast = cu.getAST();
         String methodName = method.getName().getIdentifier();
-        System.out.println(methodName);
+//        System.out.println(methodName);
         rewrite = ASTRewrite.create(ast);
         // テストメソッドを作成(既存のテストメソッドを修正する)
         modifyTestMethod(method);
@@ -94,6 +97,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
             outputConvertResult(methodName, document.get());
         } catch (IOException | BadLocationException e) {
             e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            LOGGER.error("{}: {} at {}", e.getClass(), e.getMessage(), methodName);
         }
         // initialize
         this.cu = null;
@@ -511,16 +516,24 @@ public class ParameterizedModifierBase extends AbstractModifier {
     private boolean isInExpectedDeclaringNode(MethodDeclaration origin, ASTNode node) {
         List<MethodInvocation> assertions = ASTUtils.getAllAssertions(origin);
         for (MethodInvocation assertion : assertions) {
-            Name expected;
+            Expression expected;
             ASTNode expectedDeclaringNode = null;
             if (assertion.arguments().size() == 2) {
-                expected = (Name) assertion.arguments().get(0);
-                expectedDeclaringNode = getCompilationUnit().findDeclaringNode(expected.resolveBinding());
+                expected = (Expression) assertion.arguments().get(0);
+                if (ASTUtils.isLiteralNode(expected) && expected.equals(node)) {
+                    return true;
+                } else if (expected instanceof Name) {
+                    expectedDeclaringNode = getCompilationUnit().findDeclaringNode(((Name) expected).resolveBinding());
+                }
             } else if (assertion.arguments().size() == 3) {
-                expected = (Name) assertion.arguments().get(1);
-                expectedDeclaringNode = getCompilationUnit().findDeclaringNode(expected.resolveBinding());
+                expected = (Expression) assertion.arguments().get(1);
+                if (ASTUtils.isLiteralNode(expected) && expected.equals(node)) {
+                    return true;
+                } else if (expected instanceof Name) {
+                    expectedDeclaringNode = getCompilationUnit().findDeclaringNode(((Name) expected).resolveBinding());
+                }
             }
-            while (node != null) {
+            while (expectedDeclaringNode != null && node != null) {
                 if (node.equals(expectedDeclaringNode)) {
                     return true;
                 }

@@ -65,13 +65,13 @@ public abstract class AbstractModifier {
             String testSuiteName = record.get(0);
             String testCaseName  = record.get(1);
             if (Files.exists(Paths.get(getConvertResultDir() + "/"
-                    + testSuiteName + "_" + testCaseName + ".txt"))) {
+                    + testSuiteName + "/" + testCaseName + ".txt"))) {
                 continue;
             } else {
                 try {
-                    Files.createDirectories(Paths.get(getConvertResultDir()));
+                    Files.createDirectories(Paths.get(getConvertResultDir() + "/" + testSuiteName));
                     Files.createFile(Paths.get(getConvertResultDir() + "/"
-                            + testSuiteName + "_" + testCaseName + ".txt"));
+                            + testSuiteName + "/" + testCaseName + ".txt"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -105,15 +105,6 @@ public abstract class AbstractModifier {
 
     public void detect() {
 
-        for (TestSuite testSuite : project.getTestSuites()) {
-            if (!testSuite.getTestClassName().equals("CharsetsTest")) {
-                continue;
-            }
-            CompilationUnit cu = testSuite.getCu();
-            for (MethodDeclaration method : ASTUtils.getAllMethods(cu)) {
-                System.out.println(method.getName() + " Start Line: " + cu.getLineNumber(method.getStartPosition()));
-            }
-        }
         if (Files.exists(Paths.get(getDetectResultPath()))) {
             System.out.println("DetectResult already exists!");
             return;
@@ -222,6 +213,27 @@ public abstract class AbstractModifier {
                 PostfixExpression tmp1 = (PostfixExpression) node1;
                 PostfixExpression tmp2 = (PostfixExpression) node2;
                 if (!tmp1.getOperator().equals(tmp2.getOperator())) {
+                    return false;
+                }
+            } else if (node1 instanceof SimpleType) {
+                SimpleType tmp1 = (SimpleType) node1;
+                SimpleType tmp2 = (SimpleType) node2;
+                if (!tmp1.getName().toString().equals(tmp2.getName().toString())) {
+                    return false;
+                }
+            } else if (node1 instanceof ClassInstanceCreation) {
+                ClassInstanceCreation tmp1 = (ClassInstanceCreation) node1;
+                ClassInstanceCreation tmp2 = (ClassInstanceCreation) node2;
+                if (!tmp1.getType().toString().equals(tmp2.getType().toString())) {
+                    return false;
+                }
+            } else if (node1 instanceof SimpleName) {
+                SimpleName tmp1 =(SimpleName) node1;
+                SimpleName tmp2 =(SimpleName) node2;
+                if (tmp1.resolveTypeBinding() == null || tmp2.resolveTypeBinding() == null) {
+                    continue;
+                }
+                if (!tmp1.resolveTypeBinding().getName().equals(tmp2.resolveTypeBinding().getName())) {
                     return false;
                 }
             }
