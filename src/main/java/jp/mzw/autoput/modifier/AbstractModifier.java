@@ -104,7 +104,6 @@ public abstract class AbstractModifier {
 
 
     public void detect() {
-
         if (Files.exists(Paths.get(getDetectResultPath()))) {
             System.out.println("DetectResult already exists!");
             return;
@@ -180,8 +179,8 @@ public abstract class AbstractModifier {
     }
 
     public static boolean similarAST(ASTNode src1, ASTNode src2) {
-        List<ASTNode> nodes1 = ASTUtils.getAllNodes(src1);
-        List<ASTNode> nodes2 = ASTUtils.getAllNodes(src2);
+        List<ASTNode> nodes1 = ASTUtils.flattenMinusNumberLiteral(ASTUtils.getAllNodes(src1));
+        List<ASTNode> nodes2 = ASTUtils.flattenMinusNumberLiteral(ASTUtils.getAllNodes(src2));
         if (nodes1.size() != nodes2.size()) {
             return false;
         }

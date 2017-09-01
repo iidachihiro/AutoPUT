@@ -70,7 +70,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         cu = getCompilationUnit();
         ast = cu.getAST();
         String methodName = method.getName().getIdentifier();
-//        System.out.println(methodName);
+        System.out.println(methodName);
         rewrite = ASTRewrite.create(ast);
         // テストメソッドを作成(既存のテストメソッドを修正する)
         modifyTestMethod(method);
@@ -304,9 +304,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
         ArrayInitializer arrayInitializer = ast.newArrayInitializer();
         ListRewrite listRewrite = rewrite.getListRewrite(arrayInitializer, ArrayInitializer.EXPRESSIONS_PROPERTY);
 
-        List<ASTNode> originNodes = ASTUtils.getAllNodes(origin);
+        List<ASTNode> originNodes = ASTUtils.flattenMinusNumberLiteral(ASTUtils.getAllNodes(origin));
         for (MethodDeclaration similarMethod : similarMethods) {
-            List<ASTNode> methodNodes = ASTUtils.getAllNodes(similarMethod);
+            List<ASTNode> methodNodes = ASTUtils.flattenMinusNumberLiteral(ASTUtils.getAllNodes(similarMethod));
             List<ASTNode> inputs = new ArrayList<>();
             List<ASTNode> expecteds = new ArrayList<>();
             for (int i = 0; i < originNodes.size(); i++) {
@@ -383,11 +383,17 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // expectedを置換する
         if (expectedRelatedNodes.size() == 1) {
             ASTNode target = expectedRelatedNodes.get(0);
+            if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
+                target = target.getParent();
+            }
             SimpleName replace = ast.newSimpleName(EXPECTED_VAR);
             rewrite.replace(target, replace, null);
         } else {
             for (int i = 0; i < expectedRelatedNodes.size(); i++) {
                 ASTNode target = expectedRelatedNodes.get(i);
+                if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
+                    target = target.getParent();
+                }
                 ArrayAccess replace = ast.newArrayAccess();
                 replace.setArray(ast.newSimpleName(EXPECTED_VAR));
                 replace.setIndex(ast.newNumberLiteral(String.valueOf(i)));
@@ -397,11 +403,18 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // inputを置換する
         if (inputRelatedNodes.size() == 1) {
             ASTNode target = inputRelatedNodes.get(0);
+            if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
+                NumberLiteral numberLiteral = (NumberLiteral) target;
+                target = target.getParent();
+            }
             SimpleName replace = ast.newSimpleName(INPUT_VAR);
             rewrite.replace(target, replace, null);
         } else {
             for (int i = 0; i < inputRelatedNodes.size(); i++) {
                 ASTNode target = inputRelatedNodes.get(i);
+                if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
+                    target = target.getParent();
+                }
                 ArrayAccess replace = ast.newArrayAccess();
                 replace.setArray(ast.newSimpleName(INPUT_VAR));
                 replace.setIndex(ast.newNumberLiteral(String.valueOf(i)));

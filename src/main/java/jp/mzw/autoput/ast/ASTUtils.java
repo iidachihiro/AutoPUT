@@ -56,8 +56,8 @@ public class ASTUtils {
     }
     public static List<ASTNode> getDifferentNodes(ASTNode src, ASTNode dst) {
         List<ASTNode> ret = new ArrayList<>();
-        List<ASTNode> nodes1 = ASTUtils.getAllNodes(src);
-        List<ASTNode> nodes2 = ASTUtils.getAllNodes(dst);
+        List<ASTNode> nodes1 = ASTUtils.flattenMinusNumberLiteral(ASTUtils.getAllNodes(src));
+        List<ASTNode> nodes2 = ASTUtils.flattenMinusNumberLiteral(ASTUtils.getAllNodes(dst));
         if (nodes1.size() != nodes2.size()) {
             return ret;
         }
@@ -107,27 +107,6 @@ public class ASTUtils {
         node.accept(visitor);
         return visitor.getAssertions();
     }
-
-    public static Expression getExpectedInAssertion(MethodInvocation assertion) {
-        if (assertion.arguments().size() == 2) {
-            return (Expression) assertion.arguments().get(0);
-        } else if (assertion.arguments().size() == 3) {
-            return (Expression) assertion.arguments().get(1);
-        } else {
-            return null;
-        }
-    }
-
-    public static Expression getActualInAssertion(MethodInvocation assertion) {
-        if (assertion.arguments().size() == 2) {
-            return (Expression) assertion.arguments().get(1);
-        } else if (assertion.arguments().size() == 3) {
-            return (Expression) assertion.arguments().get(2);
-        } else {
-            return null;
-        }
-    }
-
 
     public static boolean allStringLiteral(List<ASTNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
@@ -258,6 +237,40 @@ public class ASTUtils {
             }
         }
         return false;
+    }
+
+    public static List<ASTNode> flattenMinusNumberLiteral(List<ASTNode> nodes) {
+        List<ASTNode> ret = new ArrayList<>();
+        for (int i = 0; i < nodes.size(); i++) {
+            ASTNode node = nodes.get(i);
+            if (node instanceof PrefixExpression) {
+                PrefixExpression prefixExpression = (PrefixExpression) node;
+                if ((prefixExpression.getOperator().equals(PrefixExpression.Operator.MINUS))
+                        && (prefixExpression.getOperand() instanceof NumberLiteral)) {
+                    NumberLiteral numberLiteral = (NumberLiteral) prefixExpression.getOperand();
+                    if (!numberLiteral.getToken().contains("-")) {
+                        numberLiteral.setToken("-" + numberLiteral.getToken());
+                    }
+                    ret.add(numberLiteral);
+                    i++;
+                    continue;
+                }
+            }
+            ret.add(node);
+        }
+        return ret;
+    }
+
+    public static boolean isNumberLiteralWithPrefixedMinus(ASTNode node) {
+        if (!(node instanceof NumberLiteral)) {
+            return false;
+        }
+        if (!(node.getParent() instanceof PrefixExpression)) {
+            return false;
+        }
+        NumberLiteral numberLiteral = (NumberLiteral) node;
+        PrefixExpression parent = (PrefixExpression) node.getParent();
+        return parent.getOperator().equals(PrefixExpression.Operator.MINUS);
     }
 
     /*
