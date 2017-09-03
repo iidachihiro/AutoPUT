@@ -26,7 +26,7 @@ import java.util.List;
 public class ParameterizedModifierBase extends AbstractModifier {
     private static final Logger LOGGER = LoggerFactory.getLogger(ParameterizedModifier.class);
     // ユーザが変更可能
-    protected static final String CLASS_NAME = "AutoPUT";
+    protected static final String CLASS_NAME = "AutoPutTest";
     protected static final String METHOD_NAME = "autoPutTest";
     protected static final String INPUT_VAR = "_input";
     protected static final String EXPECTED_VAR = "_expected";
@@ -75,7 +75,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // テストメソッドを作成(既存のテストメソッドを修正する)
         modifyTestMethod(method);
         // dataメソッドを作成
-        createDataMethod(method);
+//        createDataMethod(method);
+        createDataPoints(method);
         // 既存のテストメソッドとコンストラクタを全て削除
         deleteExistingMethodDeclarations(method);
         // 既存のフィールド変数を削除
@@ -225,6 +226,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         listRewrite.insertLast(method, null);
     }
 
+
     protected void createDataMethod(MethodDeclaration origin) {
         MethodDeclaration method = ast.newMethodDeclaration();
         method.setConstructor(false);
@@ -247,6 +249,129 @@ public class ParameterizedModifierBase extends AbstractModifier {
         TypeDeclaration modified = getTargetType();
         ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
         listRewrite.insertLast(method, null);
+        return;
+    }
+
+    protected void createDataPoints(MethodDeclaration origin) {
+        // private static String[] INPUT1 = { "foo1", "foo2" };
+        // private static String[] EXPECTED1 = { "bar1", "bar2" };
+        // private static String[] INPUT2 = { "foo3", "foo4" };
+        // private static String[] EXPECTED2 = { "bar3", "bar4" };
+        // @DataPoints
+        // public static AutoPutTest[] DATA = {
+        //         new AutoPutTest(INPUT1, EXPECTED1),
+        //         new AutoPutTest(INPUT2, EXPECTED2)
+        // };
+        // を作る
+
+        List<MethodDeclaration> similarMethods = new ArrayList<>();
+        List<ASTNode> mostDifferentNodes = null;
+        // 共通部分が一番少ないメソッドを探す && similarなメソッドを集める
+        for (TestCase testCase : testSuite.getTestCases()) {
+            MethodDeclaration method = testCase.getMethodDeclaration();
+            if (similarAST(origin, method)) {
+                similarMethods.add(method);
+                if (mostDifferentNodes == null) {
+                    mostDifferentNodes = ASTUtils.getDifferentNodes(method, origin);
+                } else if (mostDifferentNodes.size() < ASTUtils.getDifferentNodes(origin, method).size()) {
+                    mostDifferentNodes = ASTUtils.getDifferentNodes(method, origin);
+                }
+            }
+        }
+
+        // originのnodeをinputとexpectedに分ける
+        List<ASTNode> inputRelatedNodes = new ArrayList<>();
+        List<ASTNode> expectedRelatedNodes = new ArrayList<>();
+        for (ASTNode node : mostDifferentNodes) {
+            if (isInExpectedDeclaringNode(origin, node)) {
+                expectedRelatedNodes.add(node);
+            } else {
+                inputRelatedNodes.add(node);
+            }
+        }
+        // 各テストメソッドからinputとexpectedを抜き出して追加する
+        List<ASTNode> originNodes = ASTUtils.flattenMinusNumberLiteral(ASTUtils.getAllNodes(origin));
+        for (int i = 0; i < similarMethods.size(); i++) {
+            MethodDeclaration similarMethod = similarMethods.get(i);
+            List<ASTNode> methodNodes = ASTUtils.flattenMinusNumberLiteral(ASTUtils.getAllNodes(similarMethod));
+            List<ASTNode> inputs = new ArrayList<>();
+            List<ASTNode> expecteds = new ArrayList<>();
+            for (int j = 0; j < originNodes.size(); j++) {
+                ASTNode originNode = originNodes.get(j);
+                if (expectedRelatedNodes.contains(originNode)) {
+                    expecteds.add(methodNodes.get(j));
+                } else if (inputRelatedNodes.contains(originNode)) {
+                    inputs.add(methodNodes.get(j));
+                }
+            }
+            VariableDeclarationFragment inputFragment = ast.newVariableDeclarationFragment();
+            inputFragment.setName(ast.newSimpleName("INPUT" + (i + 1)));
+            // 抜き出したinputが1つならそのまま，複数なら{}に入れて追加
+            if (inputs.size() == 0) {
+                inputFragment.setInitializer(ast.newNullLiteral());
+            } else if (inputs.size() == 1) {
+                Expression expression = (Expression) ASTNode.copySubtree(ast, inputs.get(0));
+                inputFragment.setInitializer(expression);
+            } else {
+                ArrayInitializer inputArray = ast.newArrayInitializer();
+                ListRewrite inputListRewrite = rewrite.getListRewrite(inputArray, ArrayInitializer.EXPRESSIONS_PROPERTY);
+                for (ASTNode input : inputs) {
+                    inputListRewrite.insertLast(input, null);
+                }
+                inputFragment.setInitializer(inputArray);
+            }
+            VariableDeclarationStatement inputStatement = ast.newVariableDeclarationStatement(inputFragment);
+            inputStatement.setType(getInputType(origin));
+            inputStatement.modifiers().add(ASTUtils.getPrivateModifier(ast));
+            inputStatement.modifiers().add(ASTUtils.getStaticModifier(ast));
+
+            VariableDeclarationFragment expectedFragment = ast.newVariableDeclarationFragment();
+            expectedFragment.setName(ast.newSimpleName("EXPECTED" + (i + 1)));
+            // 抜き出したexpectが1つならそのまま，複数なら{}に入れて追加
+            if (expecteds.size() == 0) {
+                expectedFragment.setInitializer(ast.newNullLiteral());
+            } else if (expecteds.size() == 1) {
+                Expression expression = (Expression) ASTNode.copySubtree(ast, expecteds.get(0));
+                expectedFragment.setInitializer(expression);
+            } else {
+                ArrayInitializer expectedArray = ast.newArrayInitializer();
+                ListRewrite expectedListRewrite = rewrite.getListRewrite(expectedArray, ArrayInitializer.EXPRESSIONS_PROPERTY);
+                for (ASTNode expected : expecteds) {
+                    expectedListRewrite.insertLast(expected, null);
+                }
+                expectedFragment.setInitializer(expectedArray);
+            }
+            VariableDeclarationStatement expectedStatement = ast.newVariableDeclarationStatement(expectedFragment);
+            expectedStatement.setType(getInputType(origin));
+            expectedStatement.modifiers().add(ASTUtils.getPrivateModifier(ast));
+            expectedStatement.modifiers().add(ASTUtils.getStaticModifier(ast));
+
+            TypeDeclaration modified = getTargetType();
+            ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+            listRewrite.insertLast(inputStatement, null);
+            listRewrite.insertLast(expectedStatement, null);
+        }
+
+        VariableDeclarationFragment dataPointsFragment = ast.newVariableDeclarationFragment();
+        dataPointsFragment.setName(ast.newSimpleName("DATA"));
+        ArrayInitializer dataPointArray = ast.newArrayInitializer();
+        dataPointsFragment.setInitializer(dataPointArray);
+        ListRewrite dataPointListRewrite = rewrite.getListRewrite(dataPointArray, ArrayInitializer.EXPRESSIONS_PROPERTY);
+        for (int i = 0; i < similarMethods.size(); i++) {
+            ClassInstanceCreation classInstanceCreation = ast.newClassInstanceCreation();
+            classInstanceCreation.setType(ast.newSimpleType(ast.newName(CLASS_NAME)));
+            classInstanceCreation.arguments().add(ast.newSimpleName("INPUT" + (i + 1)));
+            classInstanceCreation.arguments().add(ast.newSimpleName("EXPECTED" + (i + 1)));
+            dataPointListRewrite.insertLast(classInstanceCreation, null);
+        }
+        VariableDeclarationStatement dataPointStatement = ast.newVariableDeclarationStatement(dataPointsFragment);
+        dataPointStatement.setType(ast.newArrayType(ast.newSimpleType(ast.newName(CLASS_NAME))));
+        dataPointStatement.modifiers().add(ASTUtils.getDataPointsAnnotation(ast));
+        dataPointStatement.modifiers().add(ASTUtils.getPublicModifier(ast));
+        dataPointStatement.modifiers().add(ASTUtils.getStaticModifier(ast));
+        TypeDeclaration modified = getTargetType();
+        ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+        listRewrite.insertLast(dataPointStatement, null);
         return;
     }
 

@@ -26,6 +26,9 @@ public class ASTUtils {
     public static MarkerAnnotation getParametersAnnotation(AST ast) {
         return createMarkerAnnotation(ast, "Parameters");
     }
+    public static MarkerAnnotation getDataPointsAnnotation(AST ast) {
+        return createMarkerAnnotation(ast, "DataPoints");
+    }
 
     public static List<MethodInvocation> getAssertionMethods(ASTNode node) {
         AllAssertionVisitor visitor = new AllAssertionVisitor();
