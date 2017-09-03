@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -26,37 +27,24 @@ public class Prepare {
             {"commons-codec", "commons-collections", "commons-math", "joda-time", "jdom"};
 
     public static void main(String[] args) throws IOException {
-        List<CSVRecord> targets = new ArrayList<>();
+        getUserExperimentTargets();
+    }
+
+    private static void getUserExperimentTargets() {
         for (String project : PROJECTS) {
-            List<CSVRecord> candidates = new ArrayList<>();
-            List<CSVRecord> targetsPerProject = new ArrayList<>();
-            List<CSVRecord> detectResults = getDetectResults(project);
-            for (CSVRecord record : detectResults) {
-                if (SIMILAR_METHODS_NUM < record.size()) {
-                    candidates.add(record);
-                }
-            }
+            System.out.println("Project: " + project);
             List<CSVRecord> convertResults = getConvertResults(project);
-            for (CSVRecord record : convertResults) {
-                if (!(record.get(2).equals("1") && record.get(2).equals("1"))) {
-                    // Incorrect input or expected
-                    continue;
-                }
-                for (CSVRecord candidate : candidates) {
-                    if (candidate.get(0).equals(record.get(0))
-                            && candidate.get(1).equals(record.get(1))) {
-                        targets.add(candidate);
-                        targetsPerProject.add(candidate);
-                    }
+            int count = 0;
+            while (count < 10) {
+                Collections.shuffle(convertResults);
+                CSVRecord record = convertResults.get(0);
+                convertResults.remove(0);
+                if (record.get(2).equals("1") && record.get(3).equals("1")) {
+                    System.out.println("Class: " + record.get(0) + " , Original: " + record.get(1));
+                    count++;
                 }
             }
-            System.out.println("The num of experimental targets in " + project
-                    + " is " + targetsPerProject.size());
         }
-        for (CSVRecord target : targets) {
-            System.out.println("Class: " + target.get(0) + " , Original: " + target.get(1));
-        }
-        System.out.println("The num of experimental targets is " + targets.size());
     }
 
 

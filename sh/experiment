@@ -1,0 +1,6 @@
+#!/bin/bash
+
+
+CLASS_PATH="target/classes:target/test-classes:target/dependency/*"
+
+java -Xms6400m -cp ${CLASS_PATH} jp.mzw.autoput.experiment.Prepare
