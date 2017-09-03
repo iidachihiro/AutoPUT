@@ -39,6 +39,7 @@ public class Evaluation {
     protected static final String HEADERS = "headers.file";
     protected static final String SOUCERERCC_RESULT = "tokensclones_index_WITH_FILTER.txt";
     protected static final String CONVERTIBLE_TEST_CASES = "convertible_test_cases.csv";
+    protected static final String CONVERTER_RESULTS = "converter_results.csv";
     protected static final String[] PROJECTS =
 //            {"commons-codec"};
             {"commons-codec", "commons-collections", "commons-math", "joda-time", "jdom"};
@@ -49,9 +50,24 @@ public class Evaluation {
 
     protected static Project project;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
+        String command = args[0];
+        if (command.equals("detect")) {
+            try {
+                detectEvaluation();
+            } catch (IOException e) {
+                LOGGER.error("Error: {} in detect evaluation.", e.getClass());
+            }
+        } else if (command.equals("convert")) {
+            convertEvaluation();
+        } else {
+            System.out.println("Illegal usage.");
+        }
+
+    }
+
+    private static void detectEvaluation() throws IOException {
         for (String projectId : PROJECTS) {
-            System.out.println("Project: " + projectId);
             // set a subject project
             project = new Project(projectId).setConfig(CONFIG_FILENAME);
             LOGGER.debug("getHeaders()");
@@ -100,11 +116,11 @@ public class Evaluation {
                     }
                 }
             }
+            System.out.println("Project: " + projectId);
             System.out.println("AutoPUT");
             System.out.println("Detected Size: " + detected.size());
             System.out.println("Recall: " + ((double) truePositive / answers.size()) * 100);
             System.out.println("Precision: " + ((double) truePositive / detected.size() * 100));
-            System.out.println();
 
             // To evaluate sourcererCC, get answers' ids.
             LOGGER.debug("To evaluate sourcererCC, get answers' ids.");
@@ -150,12 +166,6 @@ public class Evaluation {
                             break;
                         }
                     }
-//                    System.out.println("False Positive");
-//                    for (CSVRecord record : getSourcererCCResults(threshold)) {
-//                        if (!truePositives.contains(record)) {
-//                            System.out.println("id1: " + record.get(0) + " id2: " + record.get(1));
-//                        }
-//                    }
                 }
                 System.out.println("Threshold: " + threshold);
                 System.out.println("Recall: " + ((double) truePositive / answerIds.size()  * 100));
@@ -236,4 +246,34 @@ public class Evaluation {
         }
         return ret;
     }
+
+
+    private static void convertEvaluation() {
+        for (String project : PROJECTS) {
+            List<CSVRecord> records = getConverterAnswers(project);
+            List<CSVRecord> correctPuts = new ArrayList<>();
+            for (CSVRecord record : records) {
+                if (record.get(2).equals("1") && record.get(3).equals("1")) {
+                    correctPuts.add(record);
+                }
+            }
+            System.out.println("Project: " + project);
+            System.out.println("Precision: " + ((double) correctPuts.size() / records.size()));
+            System.out.println();
+        }
+
+    }
+
+    private static List<CSVRecord> getConverterAnswers(String project) {
+        List<CSVRecord> ret = new ArrayList<>();
+        Path path = Paths.get(String.join("/", "experiment", "answer", project, CONVERTER_RESULTS));
+        try (BufferedReader br = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            CSVParser parser = CSVFormat.DEFAULT.parse(br);
+            ret = parser.getRecords();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+
 }
