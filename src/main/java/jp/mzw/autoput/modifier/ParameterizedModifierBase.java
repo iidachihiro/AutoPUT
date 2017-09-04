@@ -114,11 +114,14 @@ public class ParameterizedModifierBase extends AbstractModifier {
         runWith.setName(ast.newName(new String[]{"org", "junit", "runner", "RunWith"}));
         ImportDeclaration theories = ast.newImportDeclaration();
         theories.setName(ast.newName(new String[] {"org", "junit", "experimental", "theories", "Theories"}));
+        ImportDeclaration theory = ast.newImportDeclaration();
+        theory.setName(ast.newName(new String[] {"org", "junit", "experimental", "theories", "Theory"}));
         ImportDeclaration datapoints = ast.newImportDeclaration();
         datapoints.setName(ast.newName(new String[] {"org", "junit", "experimental", "theories", "DataPoints"}));
         // importを付与
         listRewrite.insertLast(runWith, null);
         listRewrite.insertLast(theories, null);
+        listRewrite.insertLast(theory, null);
         listRewrite.insertLast(datapoints, null);
     }
 
@@ -500,13 +503,10 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                     target = target.getParent();
                 }
-                SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
-                ArrayAccess expected = ast.newArrayAccess();
-                expected.setArray(ast.newSimpleName(EXPECTED_VAR));
-                expected.setIndex(ast.newNumberLiteral(String.valueOf(i)));
-                FieldAccess replace = ast.newFieldAccess();
-                replace.setName(fixture);
-                replace.setExpression(expected);
+                QualifiedName fixtureExpected = ast.newQualifiedName(ast.newSimpleName(FIXTURE_NAME), ast.newSimpleName(EXPECTED_VAR));
+                ArrayAccess replace = ast.newArrayAccess();
+                replace.setArray(fixtureExpected);
+                replace.setIndex(ast.newNumberLiteral(String.valueOf(i)));
                 rewrite.replace(target, replace, null);
             }
         }
@@ -529,13 +529,11 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                     target = target.getParent();
                 }
-                SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
-                ArrayAccess input = ast.newArrayAccess();
-                input.setArray(ast.newSimpleName(INPUT_VAR));
-                input.setIndex(ast.newNumberLiteral(String.valueOf(i)));
-                FieldAccess replace = ast.newFieldAccess();
-                replace.setName(fixture);
-                replace.setExpression(input);
+                QualifiedName fixtureInput = ast.newQualifiedName(ast.newSimpleName(FIXTURE_NAME), ast.newSimpleName(INPUT_VAR));
+                ArrayAccess replace = ast.newArrayAccess();
+                replace.setArray(fixtureInput);
+                replace.setIndex(ast.newNumberLiteral(String.valueOf(i)));
+                rewrite.replace(target, replace, null);
                 rewrite.replace(target, replace, null);
             }
         }
