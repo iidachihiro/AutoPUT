@@ -27,10 +27,15 @@ public class Prepare {
             {"commons-codec", "commons-collections", "commons-math", "joda-time", "jdom"};
 
     public static void main(String[] args) throws IOException {
-        getUserExperimentTargets();
+        String command = args[0];
+        if (command.equals("random")) {
+            getTargetsRandomly();
+        } else if (command.equals("all")) {
+            getAllTargets();
+        }
     }
 
-    private static void getUserExperimentTargets() {
+    private static void getTargetsRandomly() {
         for (String project : PROJECTS) {
             System.out.println("Project: " + project);
             List<CSVRecord> convertResults = getConvertResults(project);
@@ -45,6 +50,22 @@ public class Prepare {
                 }
             }
         }
+    }
+
+    private static void getAllTargets() {
+        int allSize = 0;
+        for (String project : PROJECTS) {
+            System.out.println("Project: " + project);
+            List<CSVRecord> convertResults = getConvertResults(project);
+            System.out.println("Size: " + convertResults.size());
+            allSize += convertResults.size();
+            for (CSVRecord record : convertResults) {
+                if (record.get(2).equals("1") && record.get(3).equals("1")) {
+                    System.out.println("Class: " + record.get(0) + " , Original: " + record.get(1));
+                }
+            }
+        }
+        System.out.println("All Size: " + allSize);
     }
 
 
