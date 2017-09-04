@@ -30,6 +30,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
     protected static final String METHOD_NAME = "autoPutTest";
     protected static final String INPUT_VAR = "_input";
     protected static final String EXPECTED_VAR = "_expected";
+    protected static final String FIXTURE_CLASS = "Fixture";
+    protected static final String FIXTURE_NAME = "fixture";
 
     // 変更不可
     protected static final String DATA_METHOD = "data";
@@ -77,19 +79,16 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // dataメソッドを作成
 //        createDataMethod(method);
         createDataPoints(method);
-        // 既存のテストメソッドとコンストラクタを全て削除
+        // 既存のテストメソッドを全て削除(コンストラクタと@Testのないものは残る)
         deleteExistingMethodDeclarations(method);
         // 既存のフィールド変数を削除
         deleteExistingFieldDeclarations();
         // import文を追加
         addImportDeclarations();
-        // フィールド変数を追加
-        addFieldDeclarations(method);
-        // コンストラクタを追加
-        addConstructor(method);
+        // Fixtureクラスを追加
+        addFixtureClass(method);
         // クラス名を変更，修飾子も追加
         modifyClassInfo();
-
         // modify
         try {
             Document document = new Document(testSuite.getTestSources());
@@ -113,14 +112,14 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // import文を生成
         ImportDeclaration runWith = ast.newImportDeclaration();
         runWith.setName(ast.newName(new String[]{"org", "junit", "runner", "RunWith"}));
-        ImportDeclaration parameterized = ast.newImportDeclaration();
-        parameterized.setName(ast.newName(new String[] {"org", "junit", "runners", "Parameterized"}));
-        ImportDeclaration parameters = ast.newImportDeclaration();
-        parameters.setName(ast.newName(new String[] {"org", "junit", "runners", "Parameters"}));
+        ImportDeclaration theories = ast.newImportDeclaration();
+        theories.setName(ast.newName(new String[] {"org", "junit", "experimental", "theories", "Theories"}));
+        ImportDeclaration datapoints = ast.newImportDeclaration();
+        datapoints.setName(ast.newName(new String[] {"org", "junit", "experimental", "theories", "DataPoints"}));
         // importを付与
         listRewrite.insertLast(runWith, null);
-        listRewrite.insertLast(parameterized, null);
-        listRewrite.insertLast(parameters, null);
+        listRewrite.insertLast(theories, null);
+        listRewrite.insertLast(datapoints, null);
     }
 
 
@@ -132,21 +131,10 @@ public class ParameterizedModifierBase extends AbstractModifier {
         SingleMemberAnnotation annotation = ASTUtils.getRunWithAnnotation(ast);
         modifiersListRewrite.insertLast(annotation, null);
         // クラス名を変更
-        modified.setName(ast.newSimpleName(CLASS_NAME));
-
-
+        rewrite.replace(modified.getName(), ast.newName(CLASS_NAME), null);
     }
 
-    protected void addFieldDeclarations(MethodDeclaration origin) {
-        TypeDeclaration modified = getTargetType();
-        // フィールド変数定義を生成
-        FieldDeclaration inputDeclaration = createFieldDeclaration(getInputType(origin), INPUT_VAR);
-        FieldDeclaration expectedDeclaration = createFieldDeclaration(getExpectedType(origin), EXPECTED_VAR);
-        // フィールド変数定義を追加
-        ListRewrite bodyDeclarationsListRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
-        bodyDeclarationsListRewrite.insertLast(inputDeclaration, null);
-        bodyDeclarationsListRewrite.insertLast(expectedDeclaration, null);
-    }
+
 
     protected FieldDeclaration createFieldDeclaration(Type type, String var) {
         VariableDeclarationFragment fragment = ast.newVariableDeclarationFragment();
@@ -158,40 +146,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
     }
 
 
-    protected void addConstructor(MethodDeclaration origin) {
-        // コンストラクタを生成
-        MethodDeclaration constructor = ast.newMethodDeclaration();
-        constructor.setConstructor(true);
-        // 名前を設定
-        constructor.setName(ast.newSimpleName(CLASS_NAME));
-        ListRewrite modifiersListRewrite = rewrite.getListRewrite(constructor, MethodDeclaration.MODIFIERS2_PROPERTY);
-        // public修飾子を付与
-        modifiersListRewrite.insertLast(ASTUtils.getPublicModifier(ast), null);
-        // 引数を設定
-        // inputの型と名前を設定
-        SingleVariableDeclaration input = ast.newSingleVariableDeclaration();
-        input.setType(getInputType(origin));
-        input.setName(ast.newSimpleName(INPUT_VAR));
-        // expectedの型と名前を設定
-        SingleVariableDeclaration expected = ast.newSingleVariableDeclaration();
-        expected.setType(getExpectedType(origin));
-        expected.setName(ast.newSimpleName(EXPECTED_VAR));
-        // 引数を追加
-        ListRewrite parametersListRewrite = rewrite.getListRewrite(constructor, MethodDeclaration.PARAMETERS_PROPERTY);
-        parametersListRewrite.insertLast(input, null);
-        parametersListRewrite.insertLast(expected, null);
-        // bodyを設定
-        Block body = ast.newBlock();
-        ExpressionStatement inputStatement = createConstructorBlockAssignment(INPUT_VAR);
-        ExpressionStatement expectedStatement = createConstructorBlockAssignment(EXPECTED_VAR);
-        ListRewrite bodyListRewrite = rewrite.getListRewrite(body, Block.STATEMENTS_PROPERTY);
-        bodyListRewrite.insertLast(inputStatement, null);
-        bodyListRewrite.insertLast(expectedStatement, null);
-        constructor.setBody(body);
 
-        // コンストラクタをクラスに追加
-        addMethod(constructor);
-    }
 
     protected ExpressionStatement createConstructorBlockAssignment(String var) {
         // "this.var = var;" を生成
@@ -352,6 +307,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
             listRewrite.insertLast(expectedStatement, null);
         }
 
+        // @DataPoints public static Fixture[] DATA = { new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+        // を生成
         VariableDeclarationFragment dataPointsFragment = ast.newVariableDeclarationFragment();
         dataPointsFragment.setName(ast.newSimpleName("DATA"));
         ArrayInitializer dataPointArray = ast.newArrayInitializer();
@@ -359,13 +316,13 @@ public class ParameterizedModifierBase extends AbstractModifier {
         ListRewrite dataPointListRewrite = rewrite.getListRewrite(dataPointArray, ArrayInitializer.EXPRESSIONS_PROPERTY);
         for (int i = 0; i < similarMethods.size(); i++) {
             ClassInstanceCreation classInstanceCreation = ast.newClassInstanceCreation();
-            classInstanceCreation.setType(ast.newSimpleType(ast.newName(CLASS_NAME)));
+            classInstanceCreation.setType(ast.newSimpleType(ast.newName(FIXTURE_CLASS)));
             classInstanceCreation.arguments().add(ast.newSimpleName("INPUT" + (i + 1)));
             classInstanceCreation.arguments().add(ast.newSimpleName("EXPECTED" + (i + 1)));
             dataPointListRewrite.insertLast(classInstanceCreation, null);
         }
         VariableDeclarationStatement dataPointStatement = ast.newVariableDeclarationStatement(dataPointsFragment);
-        dataPointStatement.setType(ast.newArrayType(ast.newSimpleType(ast.newName(CLASS_NAME))));
+        dataPointStatement.setType(ast.newArrayType(ast.newSimpleType(ast.newName(FIXTURE_CLASS))));
         dataPointStatement.modifiers().add(ASTUtils.getDataPointsAnnotation(ast));
         dataPointStatement.modifiers().add(ASTUtils.getPublicModifier(ast));
         dataPointStatement.modifiers().add(ASTUtils.getStaticModifier(ast));
@@ -473,7 +430,27 @@ public class ParameterizedModifierBase extends AbstractModifier {
 
     protected void modifyTestMethod(MethodDeclaration origin) {
         // 名前を変更
-        origin.setName(ast.newSimpleName(METHOD_NAME));
+        rewrite.replace(origin.getName(), ast.newSimpleName(METHOD_NAME), null);
+        // 引数を設定
+        SingleVariableDeclaration parameter = ast.newSingleVariableDeclaration();
+        parameter.setType(ast.newSimpleType(ast.newName(FIXTURE_CLASS)));
+        parameter.setName(ast.newSimpleName(FIXTURE_NAME));
+        ListRewrite argsRewrite = rewrite.getListRewrite(origin, MethodDeclaration.PARAMETERS_PROPERTY);
+        argsRewrite.insertLast(parameter, null);
+        // @Testを削除し，@Theoryを追加
+        ListRewrite annotationRewrite = rewrite.getListRewrite(origin, MethodDeclaration.MODIFIERS2_PROPERTY);
+        for (IExtendedModifier modifier : (List<IExtendedModifier>) origin.modifiers()) {
+            if (modifier.isModifier()) {
+                continue;
+            }
+            Annotation annotation = (Annotation) modifier;
+            // @Testを削除
+            if (annotation.getTypeName().toString().equals("Test")) {
+                annotationRewrite.remove(annotation, null);
+            }
+        }
+        // @Theoryを追加
+        annotationRewrite.insertFirst(ASTUtils.getThoryAnnotation(ast), null);
         // 中身を追加
         _modifyTestMethod(origin);
     }
@@ -511,7 +488,11 @@ public class ParameterizedModifierBase extends AbstractModifier {
             if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                 target = target.getParent();
             }
-            SimpleName replace = ast.newSimpleName(EXPECTED_VAR);
+            SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
+            SimpleName expected = ast.newSimpleName(EXPECTED_VAR);
+            FieldAccess replace = ast.newFieldAccess();
+            replace.setName(fixture);
+            replace.setExpression(expected);
             rewrite.replace(target, replace, null);
         } else {
             for (int i = 0; i < expectedRelatedNodes.size(); i++) {
@@ -519,9 +500,13 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                     target = target.getParent();
                 }
-                ArrayAccess replace = ast.newArrayAccess();
-                replace.setArray(ast.newSimpleName(EXPECTED_VAR));
-                replace.setIndex(ast.newNumberLiteral(String.valueOf(i)));
+                SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
+                ArrayAccess expected = ast.newArrayAccess();
+                expected.setArray(ast.newSimpleName(EXPECTED_VAR));
+                expected.setIndex(ast.newNumberLiteral(String.valueOf(i)));
+                FieldAccess replace = ast.newFieldAccess();
+                replace.setName(fixture);
+                replace.setExpression(expected);
                 rewrite.replace(target, replace, null);
             }
         }
@@ -532,7 +517,11 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 NumberLiteral numberLiteral = (NumberLiteral) target;
                 target = target.getParent();
             }
-            SimpleName replace = ast.newSimpleName(INPUT_VAR);
+            SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
+            SimpleName input = ast.newSimpleName(INPUT_VAR);
+            FieldAccess replace = ast.newFieldAccess();
+            replace.setName(fixture);
+            replace.setExpression(input);
             rewrite.replace(target, replace, null);
         } else {
             for (int i = 0; i < inputRelatedNodes.size(); i++) {
@@ -540,9 +529,13 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                     target = target.getParent();
                 }
-                ArrayAccess replace = ast.newArrayAccess();
-                replace.setArray(ast.newSimpleName(INPUT_VAR));
-                replace.setIndex(ast.newNumberLiteral(String.valueOf(i)));
+                SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
+                ArrayAccess input = ast.newArrayAccess();
+                input.setArray(ast.newSimpleName(INPUT_VAR));
+                input.setIndex(ast.newNumberLiteral(String.valueOf(i)));
+                FieldAccess replace = ast.newFieldAccess();
+                replace.setName(fixture);
+                replace.setExpression(input);
                 rewrite.replace(target, replace, null);
             }
         }
@@ -696,9 +689,79 @@ public class ParameterizedModifierBase extends AbstractModifier {
             if (methodDeclaration.equals(origin)) {
                 continue;
             }
-            if (methodDeclaration.isConstructor() || methodDeclaration.getName().toString().startsWith("test")) {
+            if (methodDeclaration.getName().toString().startsWith("test")) {
                 listRewrite.remove(methodDeclaration, null);
             }
         }
     }
+
+    /* ------------------------- For Fixture Class ----------------------- */
+    protected void addFixtureClass(MethodDeclaration origin) {
+        // create Fixture Class
+        TypeDeclaration fixtureClass = ast.newTypeDeclaration();
+        fixtureClass.setName(ast.newSimpleName(FIXTURE_CLASS));
+        ListRewrite modifiersRewrite = rewrite.getListRewrite(fixtureClass, TypeDeclaration.MODIFIERS2_PROPERTY);
+        modifiersRewrite.insertLast(ASTUtils.getPublicModifier(ast), null);
+        modifiersRewrite.insertLast(ASTUtils.getStaticModifier(ast), null);
+        addFieldDeclarations(origin, fixtureClass);
+        addConstructor(origin, fixtureClass);
+        // add Fixture Class
+        TypeDeclaration target = getTargetType();
+        ListRewrite targetRewrite = rewrite.getListRewrite(target, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+        targetRewrite.insertLast(fixtureClass, null);
+    }
+
+    protected void addFieldDeclarations(MethodDeclaration origin, TypeDeclaration fixtureClass) {
+        TypeDeclaration target = fixtureClass;
+        if (fixtureClass == null) {
+            target = getTargetType();
+        }
+        // フィールド変数定義を生成
+        FieldDeclaration inputDeclaration = createFieldDeclaration(getInputType(origin), INPUT_VAR);
+        FieldDeclaration expectedDeclaration = createFieldDeclaration(getExpectedType(origin), EXPECTED_VAR);
+        // フィールド変数定義を追加
+        ListRewrite bodyDeclarationsListRewrite = rewrite.getListRewrite(target, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+        bodyDeclarationsListRewrite.insertLast(inputDeclaration, null);
+        bodyDeclarationsListRewrite.insertLast(expectedDeclaration, null);
+    }
+
+    protected void addConstructor(MethodDeclaration origin, TypeDeclaration fixtureClass) {
+        TypeDeclaration target = fixtureClass;
+        if (fixtureClass == null) {
+            target = getTargetType();
+        }
+        // コンストラクタを生成
+        MethodDeclaration constructor = ast.newMethodDeclaration();
+        constructor.setConstructor(true);
+        // 名前を設定
+        constructor.setName(ast.newSimpleName(FIXTURE_CLASS));
+        ListRewrite modifiersListRewrite = rewrite.getListRewrite(constructor, MethodDeclaration.MODIFIERS2_PROPERTY);
+        // public修飾子を付与
+        modifiersListRewrite.insertLast(ASTUtils.getPublicModifier(ast), null);
+        // 引数を設定
+        // inputの型と名前を設定
+        SingleVariableDeclaration input = ast.newSingleVariableDeclaration();
+        input.setType(getInputType(origin));
+        input.setName(ast.newSimpleName(INPUT_VAR));
+        // expectedの型と名前を設定
+        SingleVariableDeclaration expected = ast.newSingleVariableDeclaration();
+        expected.setType(getExpectedType(origin));
+        expected.setName(ast.newSimpleName(EXPECTED_VAR));
+        // 引数を追加
+        ListRewrite parametersListRewrite = rewrite.getListRewrite(constructor, MethodDeclaration.PARAMETERS_PROPERTY);
+        parametersListRewrite.insertLast(input, null);
+        parametersListRewrite.insertLast(expected, null);
+        // bodyを設定
+        Block body = ast.newBlock();
+        ExpressionStatement inputStatement = createConstructorBlockAssignment(INPUT_VAR);
+        ExpressionStatement expectedStatement = createConstructorBlockAssignment(EXPECTED_VAR);
+        ListRewrite bodyListRewrite = rewrite.getListRewrite(body, Block.STATEMENTS_PROPERTY);
+        bodyListRewrite.insertLast(inputStatement, null);
+        bodyListRewrite.insertLast(expectedStatement, null);
+        constructor.setBody(body);
+        // コンストラクタをクラスに追加
+        ListRewrite bodyRewrite = rewrite.getListRewrite(target, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+        bodyRewrite.insertLast(constructor, null);
+    }
+
 }

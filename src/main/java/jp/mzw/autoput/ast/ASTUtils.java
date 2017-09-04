@@ -21,13 +21,16 @@ public class ASTUtils {
     }
 
     public static SingleMemberAnnotation getRunWithAnnotation(AST ast) {
-        return createSingleMemberAnnotation(ast, "RunWith", "Parameterized");
+        return createSingleMemberAnnotation(ast, "RunWith", "Theories");
     }
     public static MarkerAnnotation getParametersAnnotation(AST ast) {
         return createMarkerAnnotation(ast, "Parameters");
     }
     public static MarkerAnnotation getDataPointsAnnotation(AST ast) {
         return createMarkerAnnotation(ast, "DataPoints");
+    }
+    public static MarkerAnnotation getThoryAnnotation(AST ast) {
+        return createMarkerAnnotation(ast, "Theory");
     }
 
     public static List<MethodInvocation> getAssertionMethods(ASTNode node) {
