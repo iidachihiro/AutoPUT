@@ -47,7 +47,8 @@ public class Prepare {
         } else if (command.equals("prepare")) {
             prepareExperimentalTargets();
         } else if (command.equals("test-compile")) {
-            compileCheck();
+            String projectId = args[1];
+            compileCheck(projectId);
         }
     }
 
@@ -172,43 +173,47 @@ public class Prepare {
         }
     }
 
-    private static void compileCheck() {
-        for (String projectId : PROJECTS) {
-            System.out.println("Project: " + projectId);
-            try {
-                Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
-                List<CSVRecord> records = getExperimentalSubjects(projectId);
-                for (CSVRecord record : records) {
-                    String className = record.get(0);
-                    String originName = record.get(1);
-                    String packageName = record.get(2);
-                    if (record.get(3).equals("true")) {
-                        System.out.println("Pass Compiling: " + className + "_" + originName);
-                        continue;
-                    }
-                    String content = getConvertedTest(projectId, className, originName);
-                    Path path = getPathToFile(projectId, packageName);
-                    deleteFile(path);
-                    createFile(path, content);
-                    File subject = project.getProjectDir();
-                    File mavenHome = project.getMavenHome();
-                    try {
-                        System.out.println("Compile: " + className + "_" + originName);
-                        int result = MavenUtils.testCompile(subject, mavenHome, className + "_" + originName);
-                        if (result != 0) {
-                            // build failure
-                            return;
-                        }
-                    } catch (MavenInvocationException e) {
-                        e.printStackTrace();
-                    }
-                    deleteFile(path);
+    private static void compileCheck(String projectId) {
+        System.out.println("Project: " + projectId);
+        try {
+            Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
+            List<CSVRecord> records = getExperimentalSubjects(projectId);
+            Path beforeFilePath = null;
+            for (CSVRecord record : records) {
+                if (beforeFilePath != null) {
+                    deleteFile(beforeFilePath);
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+                String className = record.get(0);
+                String originName = record.get(1);
+                String packageName = record.get(2);
+                Path path = getPathToFile(projectId, packageName);
+                beforeFilePath = path;
+                if (record.get(3).equals("true")) {
+                    System.out.println("Pass Compiling: " + className + "_" + originName);
+                    continue;
+                }
+                String content = getConvertedTest(projectId, className, originName);
 
+
+                deleteFile(path);
+                createFile(path, content);
+                File subject = project.getProjectDir();
+                File mavenHome = project.getMavenHome();
+                try {
+                    System.out.println("Compile: " + className + "_" + originName);
+                    int result = MavenUtils.testCompile(subject, mavenHome, className + "_" + originName);
+                    if (result != 0) {
+                        // build failure
+                        return;
+                    }
+                } catch (MavenInvocationException e) {
+                    e.printStackTrace();
+                }
+                deleteFile(path);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static Path getPathToFile(String project, String packageName) {

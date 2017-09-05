@@ -45,10 +45,10 @@ public class ASTUtils {
         return visitor.getAnnotations();
     }
 
-    public static List<SimpleName> getAllSimpleNames(ASTNode node) {
-        AllSimpleNameVisitor visitor = new AllSimpleNameVisitor();
+    public static List<Name> getAllNames(ASTNode node) {
+        AllNameVisitor visitor = new AllNameVisitor();
         node.accept(visitor);
-        return visitor.getSimpleNames();
+        return visitor.getNames();
     }
     public static List<ASTNode> getAllNodes(ASTNode node) {
         AllElementsFindVisitor visitor = new AllElementsFindVisitor();

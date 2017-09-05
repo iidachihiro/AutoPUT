@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.List;
 
 public class MavenUtils {
     static Logger LOGGER = LoggerFactory.getLogger(MavenUtils.class);
