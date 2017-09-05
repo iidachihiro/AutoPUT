@@ -12,4 +12,4 @@ LRUMapTest,testRemoveLRUBlocksRemove,1,1
 CircularFifoQueueTest,testRemoveError8,1,1
 CircularFifoQueueTest,testRemoveError4,1,1
 CircularFifoQueueTest,testConstructorException1,1,1
-MapBackedSet2Test,testCanonicalEmptyCollectionExists,1,1
+MapBackedSet2Test,testCanonicalEmptyCollectionExists,0,0
