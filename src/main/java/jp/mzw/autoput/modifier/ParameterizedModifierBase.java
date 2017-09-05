@@ -586,6 +586,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
                     replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Double");
                 } else if (isObjectArrayType && canBeCasted(target)) {
                     replace = _castObject(arrayAccess, target);
+                } else if (isDoubleArrayType(getInputType(origin)) && shouldCastDoubleToInt(target)) {
+                    replace = _castInt(arrayAccess);
                 } else {
                     replace = arrayAccess;
                 }
@@ -595,12 +597,12 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 rewrite.replace(target, replace, null);
             }
         }
-
         return;
     }
 
     protected Type getInputType(MethodDeclaration origin) {
         List<ASTNode> mostDifferentNodesInOrigin = null;
+        List<List<ASTNode>> similarMethodNodes = new ArrayList<>();
         List<ASTNode> mostDifferentNodesFromAnother = null;
         // 共通部分が一番少ないメソッドを探す
         for (TestCase testCase : testSuite.getTestCases()) {
@@ -611,7 +613,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
             if (similarAST(origin, method)) {
                 if (mostDifferentNodesInOrigin == null) {
                     mostDifferentNodesInOrigin = ASTUtils.getDifferentNodes(method, origin);
-                } else if (mostDifferentNodesInOrigin.size() < ASTUtils.getDifferentNodes(origin, method).size()) {
+                    mostDifferentNodesFromAnother = ASTUtils.getDifferentNodes(origin, method);
+                } else if (mostDifferentNodesInOrigin.size() <= ASTUtils.getDifferentNodes(origin, method).size()) {
                     mostDifferentNodesInOrigin = ASTUtils.getDifferentNodes(method, origin);
                     mostDifferentNodesFromAnother = ASTUtils.getDifferentNodes(origin, method);
                 }
@@ -647,6 +650,23 @@ public class ParameterizedModifierBase extends AbstractModifier {
                                 ret = commonTypeFromAother;
                             }
                         }
+                    }
+                }
+            }
+        } else if (commonTypeInOrigin instanceof PrimitiveType) {
+            PrimitiveType primitiveType = (PrimitiveType) commonTypeInOrigin;
+            if (primitiveType.getPrimitiveTypeCode().equals(PrimitiveType.INT)) {
+                List<ASTNode> inputRelatedNodesFromAnother = new ArrayList<>();
+                for (ASTNode node : mostDifferentNodesFromAnother) {
+                    if (!isInExpectedDeclaringNode(origin, node)) {
+                        inputRelatedNodesFromAnother.add(node);
+                    }
+                }
+                Type commonTypeFromAother = _getCommonType(inputRelatedNodesFromAnother);
+                if (commonTypeFromAother instanceof PrimitiveType) {
+                    PrimitiveType primitiveType1 = (PrimitiveType) commonTypeFromAother;
+                    if (primitiveType1.getPrimitiveTypeCode() == PrimitiveType.DOUBLE) {
+                        ret = commonTypeFromAother;
                     }
                 }
             }
@@ -941,7 +961,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return castExpression;
     }
 
-    private CastExpression _castInt(Expression expression, ASTNode target) {
+    private CastExpression _castInt(Expression expression) {
         CastExpression castExpression = ast.newCastExpression();
         castExpression.setExpression(expression);
         Type castType = ast.newPrimitiveType(PrimitiveType.INT);
@@ -995,6 +1015,29 @@ public class ParameterizedModifierBase extends AbstractModifier {
             }
         }
         return ret;
+    }
+
+    private boolean shouldCastDoubleToInt(ASTNode target) {
+        if (target.getParent() instanceof MethodInvocation) {
+            MethodInvocation methodInvocation = (MethodInvocation) target.getParent();
+            List<Expression> args = (List<Expression>) methodInvocation.arguments();
+            int targetIndex = -1;
+            for (int i = 0; i < args.size(); i++) {
+                Expression arg = args.get(i);
+                if (arg.equals(target)) {
+                    targetIndex = i;
+                }
+            }
+            IMethodBinding iMethodBinding = methodInvocation.resolveMethodBinding();
+            ITypeBinding[] iTypeBindings = iMethodBinding.getParameterTypes();
+            if (iTypeBindings.length - 1 < targetIndex) {
+                return false;
+            }
+            if (iTypeBindings[targetIndex].getName().equals("int")) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

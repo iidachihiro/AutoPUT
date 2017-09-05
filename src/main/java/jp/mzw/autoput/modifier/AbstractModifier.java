@@ -85,7 +85,8 @@ public abstract class AbstractModifier {
                         try {
                             new ParameterizedModifierBase(project, testSuite).modify(testCase.getMethodDeclaration());
                         } catch (NullPointerException e) {
-                            System.err.println("NullPo At " + testSuiteName + "/" + testCaseName + ".txt");
+                            System.err.println("NullPo At " + testSuiteName + "_" + testCaseName + ".txt");
+                            e.printStackTrace();
                         }
                         break;
                     }
