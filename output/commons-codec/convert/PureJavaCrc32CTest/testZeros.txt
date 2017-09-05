@@ -1,0 +1,73 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.codec.digest;
+
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * Test class for PureJavaCrc32C.
+ * Test data was derived from
+ * https://tools.ietf.org/html/rfc3720#appendix-B.4
+ */
+public @RunWith(Theories.class) class AutoPutTest {
+
+    private final PureJavaCrc32C crc = new PureJavaCrc32C();
+
+    private byte[] data = new byte[32];
+
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        for(int i = 0; i < data.length; i ++) {
+            data[i]= (byte) fixture._input[0];
+        }
+        check(fixture._input[1]); // aa 36 91 8a
+    }
+
+    // Using int because only want 32 bits
+    private void check(int expected) {
+        crc.reset();
+        crc.update(data, 0, data.length);
+        int actual = (int) crc.getValue();
+        Assert.assertEquals(Integer.toHexString(expected), Integer.toHexString(actual));
+    }
+
+	private static int[] INPUT1 = { 0, 0x8a9136aa };
+
+	private static Object EXPECTED1 = null;
+
+	private static int[] INPUT2 = { 0xFF, 0x62a8ab43 };
+
+	private static Object EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private int[] _input;
+		private Object _expected;
+
+		public Fixture(int[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

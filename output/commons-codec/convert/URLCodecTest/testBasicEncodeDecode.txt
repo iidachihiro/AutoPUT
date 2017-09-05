@@ -1,0 +1,99 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.codec.net;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
+import java.io.UnsupportedEncodingException;
+
+import org.apache.commons.codec.CharEncoding;
+import org.apache.commons.codec.Charsets;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.EncoderException;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * URL codec test cases
+ *
+ * @version $Id$
+ */
+public @RunWith(Theories.class) class AutoPutTest {
+
+    static final int SWISS_GERMAN_STUFF_UNICODE [] = {
+        0x47, 0x72, 0xFC, 0x65, 0x7A, 0x69, 0x5F, 0x7A, 0xE4, 0x6D, 0xE4
+    };
+
+    static final int RUSSIAN_STUFF_UNICODE [] = {
+        0x412, 0x441, 0x435, 0x43C, 0x5F, 0x43F, 0x440, 0x438,
+        0x432, 0x435, 0x442
+    };
+
+    private void validateState(final URLCodec urlCodec) {
+        // no tests for now.
+    }
+
+    private String constructString(final int [] unicodeChars) {
+        final StringBuilder buffer = new StringBuilder();
+        if (unicodeChars != null) {
+            for (final int unicodeChar : unicodeChars) {
+                buffer.append((char)unicodeChar);
+            }
+        }
+        return buffer.toString();
+    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture) throws Exception {
+        final URLCodec urlCodec = new URLCodec();
+        final String plain = fixture._expected[0];
+        final String encoded = urlCodec.encode(plain);
+        assertEquals(fixture._input[0],
+            fixture._expected[1], encoded);
+        assertEquals(fixture._input[1],
+            plain, urlCodec.decode(encoded));
+        this.validateState(urlCodec);
+    }
+
+
+    private static String[] INPUT1 = { "Basic URL encoding test", "Basic URL decoding test" };
+
+	private static String[] EXPECTED1 = { "Hello there!", "Hello+there%21" };
+
+	private static String[] INPUT2 = { "Unsafe chars URL encoding test", "Unsafe chars URL decoding test" };
+
+	private static String[] EXPECTED2 = { "~!@#$%^&()+{}\"\\;:`,/[]",
+			"%7E%21%40%23%24%25%5E%26%28%29%2B%7B%7D%22%5C%3B%3A%60%2C%2F%5B%5D" };
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private String[] _input;
+		private String[] _expected;
+
+		public Fixture(String[] _input, String[] _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}
