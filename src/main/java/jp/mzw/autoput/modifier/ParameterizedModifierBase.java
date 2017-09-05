@@ -77,12 +77,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // テストメソッドを作成(既存のテストメソッドを修正する)
         modifyTestMethod(method);
         // dataメソッドを作成
-//        createDataMethod(method);
         createDataPoints(method);
         // 既存のテストメソッドを全て削除(コンストラクタと@Testのないものは残る)
-        deleteExistingMethodDeclarations(method);
-        // 既存のフィールド変数を削除
-        deleteExistingFieldDeclarations();
+        deleteOtherTestMethods(method);
         // import文を追加
         addImportDeclarations();
         // Fixtureクラスを追加
@@ -300,7 +297,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 expectedFragment.setInitializer(expectedArray);
             }
             VariableDeclarationStatement expectedStatement = ast.newVariableDeclarationStatement(expectedFragment);
-            expectedStatement.setType(getInputType(origin));
+            expectedStatement.setType(getExpectedType(origin));
             expectedStatement.modifiers().add(ASTUtils.getPrivateModifier(ast));
             expectedStatement.modifiers().add(ASTUtils.getStaticModifier(ast));
 
@@ -567,24 +564,44 @@ public class ParameterizedModifierBase extends AbstractModifier {
         Type ret;
         if (1 < inputRelatedNodes.size()) {
             ret = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
-            if (ASTUtils.allStringLiteral(inputRelatedNodes)) {
+            if (ASTUtils.allStringType(inputRelatedNodes)) {
                 ret = ast.newArrayType(ast.newSimpleType(ast.newName("String")));
-            } else if (ASTUtils.allNumberLiteral(inputRelatedNodes)) {
+            } else if (ASTUtils.allDoubleType(inputRelatedNodes)) {
                 ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.DOUBLE));
-            } else if (ASTUtils.allCharacterLiteral(inputRelatedNodes)) {
+            } else if (ASTUtils.allFloatType(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.FLOAT));
+            } else if (ASTUtils.allLongType(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.LONG));
+            } else if (ASTUtils.allIntType(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.INT));
+            } else if (ASTUtils.allShortType(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.SHORT));
+            } else if (ASTUtils.allByteType(inputRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BYTE));
+            } else if (ASTUtils.allCharacterType(inputRelatedNodes)) {
                 ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.CHAR));
-            } else if (ASTUtils.allBooleanLiteral(inputRelatedNodes)) {
+            } else if (ASTUtils.allBooleanType(inputRelatedNodes)) {
                 ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BOOLEAN));
             }
         } else {
             ret = ast.newSimpleType(ast.newName("Object"));
-            if (ASTUtils.allStringLiteral(inputRelatedNodes)) {
+            if (ASTUtils.allStringType(inputRelatedNodes)) {
                 ret = ast.newSimpleType(ast.newName("String"));
-            } else if (ASTUtils.allNumberLiteral(inputRelatedNodes)) {
+            } else if (ASTUtils.allDoubleType(inputRelatedNodes)) {
                 ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
-            } else if (ASTUtils.allCharacterLiteral(inputRelatedNodes)) {
+            } else if (ASTUtils.allFloatType(inputRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.FLOAT);
+            } else if (ASTUtils.allLongType(inputRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.LONG);
+            } else if (ASTUtils.allIntType(inputRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.INT);
+            } else if (ASTUtils.allShortType(inputRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.SHORT);
+            } else if (ASTUtils.allByteType(inputRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.BYTE);
+            } else if (ASTUtils.allCharacterType(inputRelatedNodes)) {
                 ret = ast.newPrimitiveType(PrimitiveType.CHAR);
-            } else if (ASTUtils.allBooleanLiteral(inputRelatedNodes)) {
+            } else if (ASTUtils.allBooleanType(inputRelatedNodes)) {
                 ret = ast.newPrimitiveType(PrimitiveType.BOOLEAN);
             }
         }
@@ -617,24 +634,44 @@ public class ParameterizedModifierBase extends AbstractModifier {
         Type ret;
         if (1 < expectedRelatedNodes.size()) {
             ret = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
-            if (ASTUtils.allStringLiteral(expectedRelatedNodes)) {
+            if (ASTUtils.allStringType(expectedRelatedNodes)) {
                 ret = ast.newArrayType(ast.newSimpleType(ast.newName("String")));
-            } else if (ASTUtils.allNumberLiteral(expectedRelatedNodes)) {
+            } else if (ASTUtils.allDoubleType(expectedRelatedNodes)) {
                 ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.DOUBLE));
-            } else if (ASTUtils.allCharacterLiteral(expectedRelatedNodes)) {
+            } else if (ASTUtils.allFloatType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.FLOAT));
+            } else if (ASTUtils.allLongType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.LONG));
+            } else if (ASTUtils.allIntType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.INT));
+            } else if (ASTUtils.allShortType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.SHORT));
+            } else if (ASTUtils.allByteType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BYTE));
+            } else if (ASTUtils.allCharacterType(expectedRelatedNodes)) {
                 ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.CHAR));
-            } else if (ASTUtils.allBooleanLiteral(expectedRelatedNodes)) {
+            } else if (ASTUtils.allBooleanType(expectedRelatedNodes)) {
                 ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BOOLEAN));
             }
         } else {
             ret = ast.newSimpleType(ast.newName("Object"));
-            if (ASTUtils.allStringLiteral(expectedRelatedNodes)) {
+            if (ASTUtils.allStringType(expectedRelatedNodes)) {
                 ret = ast.newSimpleType(ast.newName("String"));
-            } else if (ASTUtils.allNumberLiteral(expectedRelatedNodes)) {
+            } else if (ASTUtils.allDoubleType(expectedRelatedNodes)) {
                 ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
-            } else if (ASTUtils.allCharacterLiteral(expectedRelatedNodes)) {
+            } else if (ASTUtils.allFloatType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.FLOAT);
+            } else if (ASTUtils.allLongType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.LONG);
+            } else if (ASTUtils.allIntType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.INT);
+            } else if (ASTUtils.allShortType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.SHORT);
+            } else if (ASTUtils.allByteType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.BYTE);
+            } else if (ASTUtils.allCharacterType(expectedRelatedNodes)) {
                 ret = ast.newPrimitiveType(PrimitiveType.CHAR);
-            } else if (ASTUtils.allBooleanLiteral(expectedRelatedNodes)) {
+            } else if (ASTUtils.allBooleanType(expectedRelatedNodes)) {
                 ret = ast.newPrimitiveType(PrimitiveType.BOOLEAN);
             }
         }
@@ -672,22 +709,15 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return false;
     }
 
-    protected void deleteExistingFieldDeclarations() {
-        TypeDeclaration modified = getTargetType();
-        ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
-        for (FieldDeclaration fieldDeclaration : modified.getFields()) {
-            listRewrite.remove(fieldDeclaration, null);
-        }
-    }
 
-    protected void deleteExistingMethodDeclarations(MethodDeclaration origin) {
+    protected void deleteOtherTestMethods(MethodDeclaration origin) {
         TypeDeclaration modified = getTargetType();
         ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
         for (MethodDeclaration methodDeclaration : modified.getMethods()) {
             if (methodDeclaration.equals(origin)) {
                 continue;
             }
-            if (methodDeclaration.getName().toString().startsWith("test")) {
+            if (ASTUtils.hasTestAnnotation(methodDeclaration.modifiers())) {
                 listRewrite.remove(methodDeclaration, null);
             }
         }

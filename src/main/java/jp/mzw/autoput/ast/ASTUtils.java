@@ -114,7 +114,7 @@ public class ASTUtils {
         return visitor.getAssertions();
     }
 
-    public static boolean allStringLiteral(List<ASTNode> nodes) {
+    public static boolean allStringType(List<ASTNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
             return false;
         }
@@ -136,7 +136,7 @@ public class ASTUtils {
         return true;
     }
 
-    public static boolean allNumberLiteral(List<ASTNode> nodes) {
+    public static boolean allDoubleType(List<ASTNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
             return false;
         }
@@ -150,7 +150,69 @@ public class ASTUtils {
                     return false;
                 }
                 String type = expression.resolveTypeBinding().getName();
-                if (type.equals("int") || type.equals("double")) {
+                if (type.equals("double")) {
+                    continue;
+                }
+                return false;
+            } else {
+                String type = ((NumberLiteral) node).resolveTypeBinding().getName();
+                if (type.equals("double")) {
+                    continue;
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+    public static boolean allFloatType(List<ASTNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return false;
+        }
+        for (ASTNode node : nodes) {
+            if (!(node instanceof NumberLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
+                String type = expression.resolveTypeBinding().getName();
+                if (type.equals("float")) {
+                    continue;
+                }
+                return false;
+            } else {
+                String type = ((NumberLiteral) node).resolveTypeBinding().getName();
+                if (type.equals("float")) {
+                    continue;
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+    public static boolean allLongType(List<ASTNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return false;
+        }
+        for (ASTNode node : nodes) {
+            if (!(node instanceof NumberLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
+                String type = expression.resolveTypeBinding().getName();
+                if (type.equals("long")) {
+                    continue;
+                }
+                return false;
+            } else {
+                String type = ((NumberLiteral) node).resolveTypeBinding().getName();
+                if (type.equals("long")) {
                     continue;
                 }
                 return false;
@@ -159,7 +221,92 @@ public class ASTUtils {
         return true;
     }
 
-    public static boolean allCharacterLiteral(List<ASTNode> nodes) {
+    public static boolean allIntType(List<ASTNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return false;
+        }
+        for (ASTNode node : nodes) {
+            if (!(node instanceof NumberLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
+                String type = expression.resolveTypeBinding().getName();
+                if (type.equals("int")) {
+                    continue;
+                }
+                return false;
+            } else {
+                String type = ((NumberLiteral) node).resolveTypeBinding().getName();
+                if (type.equals("int")) {
+                    continue;
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+    public static boolean allByteType(List<ASTNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return false;
+        }
+        for (ASTNode node : nodes) {
+            if (!(node instanceof NumberLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
+                String type = expression.resolveTypeBinding().getName();
+                if (type.equals("byte")) {
+                    continue;
+                }
+                return false;
+            } else {
+                String type = ((NumberLiteral) node).resolveTypeBinding().getName();
+                if (type.equals("byte")) {
+                    continue;
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+    public static boolean allShortType(List<ASTNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return false;
+        }
+        for (ASTNode node : nodes) {
+            if (!(node instanceof NumberLiteral)) {
+                if (!(node instanceof Expression)) {
+                    return false;
+                }
+                Expression expression = (Expression) node;
+                if (expression.resolveTypeBinding() == null) {
+                    return false;
+                }
+                String type = expression.resolveTypeBinding().getName();
+                if (type.equals("short")) {
+                    continue;
+                }
+                return false;
+            } else {
+                String type = ((NumberLiteral) node).resolveTypeBinding().getName();
+                if (type.equals("short")) {
+                    continue;
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean allCharacterType(List<ASTNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
             return false;
         }
@@ -181,7 +328,7 @@ public class ASTUtils {
         return true;
     }
 
-    public static boolean allBooleanLiteral(List<ASTNode> nodes) {
+    public static boolean allBooleanType(List<ASTNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
             return false;
         }
@@ -238,6 +385,17 @@ public class ASTUtils {
             if (iExtendedModifier.isModifier()) {
                 Modifier modifier = (Modifier) iExtendedModifier;
                 if (modifier.isFinal()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    public static boolean hasTestAnnotation(List<IExtendedModifier> modifiers) {
+        for (IExtendedModifier iExtendedModifier : modifiers) {
+            if (iExtendedModifier.isAnnotation()) {
+                Annotation annotation = (Annotation) iExtendedModifier;
+                if (annotation.getTypeName().toString().equals("Test")) {
                     return true;
                 }
             }
