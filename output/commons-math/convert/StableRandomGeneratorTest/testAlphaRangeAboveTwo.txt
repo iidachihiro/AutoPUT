@@ -1,0 +1,69 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.random;
+
+import org.apache.commons.math4.exception.OutOfRangeException;
+import org.apache.commons.rng.UniformRandomProvider;
+import org.apache.commons.rng.simple.RandomSource;
+import org.apache.commons.math4.stat.StatUtils;
+import org.apache.commons.math4.stat.descriptive.DescriptiveStatistics;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * Tests for the class {@link StableRandomGenerator}.
+ */
+public @RunWith(Theories.class) class AutoPutTest {
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        try {
+            new StableRandomGenerator(rg,
+                    fixture._input[0], fixture._input[1]);
+            Assert.fail("Expected OutOfRangeException");
+        } catch (OutOfRangeException e) {
+            Assert.assertEquals(_expected.fixture, e.getArgument());
+        }
+    }
+
+    private static double[] INPUT1 = { 3.0, 0.0 };
+
+	private static double[] EXPECTED1 = 3.0;
+
+	private static double[] INPUT2 = { 1.0, -2.0 };
+
+	private static double[] EXPECTED2 = -2.0;
+
+	private static double[] INPUT3 = { 1.0, 2.0 };
+
+	private static double[] EXPECTED3 = 2.0;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3)};
+
+	public static class Fixture {
+		private double[] _input;
+		private double _expected;
+
+		public Fixture(double[] _input, double _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

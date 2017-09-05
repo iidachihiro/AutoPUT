@@ -1,0 +1,71 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.geometry.spherical.oned;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+import org.apache.commons.math4.exception.NumberIsTooLargeException;
+import org.apache.commons.math4.geometry.partitioning.BSPTree;
+import org.apache.commons.math4.geometry.partitioning.Region;
+import org.apache.commons.math4.geometry.partitioning.RegionFactory;
+import org.apache.commons.math4.geometry.partitioning.Side;
+import org.apache.commons.math4.geometry.partitioning.SubHyperplane;
+import org.apache.commons.math4.geometry.partitioning.Region.Location;
+import org.apache.commons.math4.geometry.spherical.oned.Arc;
+import org.apache.commons.math4.geometry.spherical.oned.ArcsSet;
+import org.apache.commons.math4.geometry.spherical.oned.LimitAngle;
+import org.apache.commons.math4.geometry.spherical.oned.S1Point;
+import org.apache.commons.math4.geometry.spherical.oned.Sphere1D;
+import org.apache.commons.math4.geometry.spherical.oned.SubLimitAngle;
+import org.apache.commons.math4.util.FastMath;
+import org.apache.commons.math4.util.MathUtils;
+import org.apache.commons.numbers.core.Precision;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+public @RunWith(Parameterized.class) class ArcsSetTest {
+
+    @Test
+    public void testSideEmbedded() {
+
+        ArcsSet s35 = new ArcsSet(3.0, 5.0, 1.0e-10);
+        ArcsSet s16 = new ArcsSet(_input[0], 6.0, 1.0e-10);
+
+        Assert.assertEquals(Side.BOTH,  s16.split(new Arc(3.0, 5.0, 1.0e-10)).getSide());
+        Assert.assertEquals(Side.BOTH,  s16.split(new Arc(5.0, 3.0 + MathUtils.TWO_PI, 1.0e-10)).getSide());
+        Assert.assertEquals(_input[1], s35.split(new Arc(_input[2], 6.0, 1.0e-10)).getSide());
+        Assert.assertEquals(_input[3],  s35.split(new Arc(6.0, _input[4] + MathUtils.TWO_PI, 1.0e-10)).getSide());
+
+    }
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{1.0,Side.MINUS,1.0,Side.PLUS,1.0},{}},{{4.0,Side.BOTH,4.0,Side.BOTH,4.0},{}}});}
+
+	private Object[] _input;
+	private Object _expected;
+
+	public AutoPUT(Object[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

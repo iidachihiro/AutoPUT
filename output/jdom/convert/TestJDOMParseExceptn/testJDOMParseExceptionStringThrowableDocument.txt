@@ -1,0 +1,45 @@
+package org.jdom2.test.cases.input;
+
+import static org.junit.Assert.*;
+
+import org.jdom2.Document;
+import org.jdom2.input.JDOMParseException;
+import org.junit.Test;
+import org.xml.sax.SAXParseException;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+// Do not use name ending in Exception.
+@SuppressWarnings("javadoc")
+public @RunWith(Theories.class) class AutoPutTest {
+	
+	@Theory
+	public void autoPutTest(Fixture fixture) {
+		Document doc = new Document();
+		JDOMParseException e = new JDOMParseException("test", spe, doc);
+		assertTrue(e.getPartialDocument() == doc);
+	}
+
+	private static Object INPUT1 = null;
+
+	private static Object EXPECTED1 = null;
+
+	private static Object INPUT2 = null;
+
+	private static Object EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private Object _input;
+		private Object _expected;
+
+		public Fixture(Object _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

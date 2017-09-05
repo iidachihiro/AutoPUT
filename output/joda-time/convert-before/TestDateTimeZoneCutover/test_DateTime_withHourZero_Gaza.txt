@@ -1,0 +1,131 @@
+/*
+ *  Copyright 2001-2013 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.chrono.GregorianChronology;
+import org.joda.time.tz.DateTimeZoneBuilder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+/**
+ * This class is a JUnit test for DateTimeZone.
+ *
+ * @author Stephen Colebourne
+ */
+public @RunWith(Parameterized.class) class TestDateTimeZoneCutover extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestDateTimeZoneCutover.class);
+    }
+
+    protected void setUp() throws Exception {
+    }
+
+    protected void tearDown() throws Exception {
+    }
+
+    //-----------------------------------------------------------------------
+    //------------------------ Bug [1710316] --------------------------------
+    //-----------------------------------------------------------------------
+    // The behaviour of getOffsetFromLocal is defined in its javadoc
+    // However, this definition doesn't work for all DateTimeField operations
+    
+    private void doTest_getOffsetFromLocal_Gaza(int days, int hour, int min, String expected) {
+        DateTime dt = new DateTime(2007, 4, 1, hour, min, 0, 0, DateTimeZone.UTC).plusDays(days);
+        int offset = MOCK_GAZA.getOffsetFromLocal(dt.getMillis());
+        DateTime res = new DateTime(dt.getMillis() - offset, MOCK_GAZA);
+        assertEquals(res.toString(), expected, res.toString());
+    }
+
+    public void test_DateTime_withHourZero_Gaza() {
+        DateTime dt = new DateTime(2007, 4, 1, 8, 0, 0, 0, MOCK_GAZA);
+        assertEquals(_expected, dt.toString());
+        try {
+            dt.withHourOfDay(0);
+            fail();
+        } catch (IllegalFieldValueException ex) {
+            // expected
+        }
+    }
+
+    private void doTest_getOffsetFromLocal_Turk(int days, int hour, int min, String expected, int expOffset) {
+        DateTime dt = new DateTime(2007, 4, 1, hour, min, 0, 0, DateTimeZone.UTC).plusDays(days);
+        int offset = MOCK_TURK.getOffsetFromLocal(dt.getMillis());
+        assertEquals(expOffset * 3600000L, offset);
+        DateTime res = new DateTime(dt.getMillis() - offset, MOCK_TURK);
+        assertEquals(res.toString(), expected, res.toString());
+    }
+
+    
+
+    //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+
+    
+
+//    public void test_toDateMidnight_SaoPaolo() {
+//        // RFE: 1684259
+//        DateTimeZone zone = DateTimeZone.forID("America/Sao_Paulo");
+//        LocalDate baseDate = new LocalDate(2006, 11, 5);
+//        DateMidnight dm = baseDate.toDateMidnight(zone);
+//        assertEquals("2006-11-05T00:00:00.000-03:00", dm.toString());
+//        DateTime dt = baseDate.toDateTimeAtMidnight(zone);
+//        assertEquals("2006-11-05T00:00:00.000-03:00", dt.toString());
+//    }
+
+    //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+    private void doTest_getOffsetFromLocal(int month, int day, int hour, int min, String expected, int expOffset, DateTimeZone zone) {
+        doTest_getOffsetFromLocal(2007, month, day, hour, min, 0, 0, expected, expOffset, zone);
+    }
+
+    private void doTest_getOffsetFromLocal(int month, int day, int hour, int min, int sec, int milli, String expected, int expOffset, DateTimeZone zone) {
+        doTest_getOffsetFromLocal(2007, month, day, hour, min, sec, milli, expected, expOffset, zone);
+    }
+
+    private void doTest_getOffsetFromLocal(int year, int month, int day, int hour, int min, String expected, int expOffset, DateTimeZone zone) {
+        doTest_getOffsetFromLocal(year, month, day, hour, min, 0, 0, expected, expOffset, zone);
+    }
+
+    private void doTest_getOffsetFromLocal(int year, int month, int day, int hour, int min, int sec, int milli, String expected, int expOffset, DateTimeZone zone) {
+        DateTime dt = new DateTime(year, month, day, hour, min, sec, milli, DateTimeZone.UTC);
+        int offset = zone.getOffsetFromLocal(dt.getMillis());
+        assertEquals(expOffset * 3600000L, offset);
+        DateTime res = new DateTime(dt.getMillis() - offset, zone);
+        assertEquals(res.toString(), expected, res.toString());
+    }
+
+	@Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{},"2007-04-01T08:00:00.000+03:00"},{{},"2007-04-01T08:00:00.000-04:00"}});}
+
+	private Object _input;
+	private String _expected;
+
+	public AutoPUT(Object _input, String _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

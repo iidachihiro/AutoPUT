@@ -1,0 +1,202 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.collections4.map;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import junit.framework.Test;
+
+import org.apache.commons.collections4.BulkTest;
+import org.apache.commons.collections4.MapIterator;
+import org.apache.commons.collections4.OrderedMap;
+import org.apache.commons.collections4.ResettableIterator;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * JUnit tests.
+ *
+ * @version $Id$
+ */
+public @RunWith(Theories.class) class AutoPutTest<K, V> extends AbstractOrderedMapTest<K, V> {
+
+    public LRUMapTest(final String testName) {
+        super(testName);
+    }
+
+    public static Test suite() {
+        return BulkTest.makeSuite(LRUMapTest.class);
+    }
+
+    @Override
+    public LRUMap<K, V> makeObject() {
+        return new LRUMap<>();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public LRUMap<K, V> makeFullMap() {
+        return (LRUMap<K, V>) super.makeFullMap();
+    }
+
+    @Override
+    public boolean isGetStructuralModify() {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public LRUMap<K, V> getMap() {
+        return (LRUMap<K, V>) super.getMap();
+    }
+
+    static class MockLRUMapSubclass<K, V> extends LRUMap<K, V> {
+        /**
+         * Generated serial version ID.
+         */
+        private static final long serialVersionUID = -2126883654452042477L;
+        LinkEntry<K, V> entry;
+        K key;
+        V value;
+
+        MockLRUMapSubclass(final int size) {
+            super(size);
+        }
+
+        @Override
+        protected boolean removeLRU(final LinkEntry<K, V> entry) {
+            this.entry = entry;
+            this.key = entry.getKey();
+            this.value = entry.getValue();
+            return true;
+        }
+    }
+
+    @Theory
+	@SuppressWarnings("unchecked")
+    public void autoPutTest(Fixture fixture) {
+        final MockLRUMapSubclassBlocksRemove<K, V> map = new MockLRUMapSubclassBlocksRemove<>(2, _input.fixture);
+        assertEquals(0, map.size());
+        map.put((K) "A", (V) "a");
+        assertEquals(1, map.size());
+        map.put((K) "B", (V) "b");
+        assertEquals(2, map.size());
+        map.put((K) "C", (V) "c");  // should remove oldest, which is A=a, but this is blocked
+        assertEquals(3, map.size());
+        assertEquals(2, map.maxSize());
+        assertEquals(true, map.containsKey("A"));
+        assertEquals(true, map.containsKey("B"));
+        assertEquals(true, map.containsKey("C"));
+    }
+
+    static class MockLRUMapSubclassBlocksRemove<K, V> extends LRUMap<K, V> {
+        /**
+         * Generated serial version ID.
+         */
+        private static final long serialVersionUID = 6278917461128992945L;
+
+        MockLRUMapSubclassBlocksRemove(final int size, final boolean scanUntilRemove) {
+            super(size, scanUntilRemove);
+        }
+
+        @Override
+        protected boolean removeLRU(final LinkEntry<K, V> entry) {
+            return false;
+        }
+    }
+
+    static class MockLRUMapSubclassFirstBlocksRemove<K, V> extends LRUMap<K, V> {
+        /**
+         * Generated serial version ID.
+         */
+        private static final long serialVersionUID = -6939790801702973428L;
+
+        MockLRUMapSubclassFirstBlocksRemove(final int size) {
+            super(size, true);
+        }
+
+        @Override
+        protected boolean removeLRU(final LinkEntry<K, V> entry) {
+            if ("a".equals(entry.getValue())) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+    }
+
+    //-----------------------------------------------------------------------
+    static class SingleHashCode {
+        private final String code;
+        SingleHashCode(final String code) {
+            this.code = code;
+        }
+        @Override
+        public int hashCode() {
+            // always return the same hashcode
+            // that way, it will end up in the same bucket
+            return 12;
+        }
+        @Override
+        public String toString() {
+            return "SingleHashCode:" + code;
+        }
+    }
+
+    @Override
+    public String getCompatibilityVersion() {
+        return "4";
+    }
+
+	private static boolean INPUT1 = false;
+
+	private static boolean EXPECTED1 = null;
+
+	private static boolean INPUT2 = true;
+
+	private static boolean EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private boolean _input;
+		private Object _expected;
+
+		public Fixture(boolean _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+//    public void testCreate() throws Exception {
+//        resetEmpty();
+//        writeExternalFormToDisk((java.io.Serializable) map, "src/test/resources/data/test/LRUMap.emptyCollection.version4.obj");
+//        resetFull();
+//        writeExternalFormToDisk((java.io.Serializable) map, "src/test/resources/data/test/LRUMap.fullCollection.version4.obj");
+//    }
+
+}

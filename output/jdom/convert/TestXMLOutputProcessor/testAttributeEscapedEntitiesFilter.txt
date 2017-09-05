@@ -1,0 +1,266 @@
+package org.jdom2.test.cases.output;
+
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.Writer;
+
+import org.jdom2.IllegalDataException;
+import org.jdom2.Text;
+import org.jdom2.output.Format;
+import org.jdom2.output.support.AbstractXMLOutputProcessor;
+import org.jdom2.output.support.FormatStack;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * 
+ * @author Rolf Lear
+ *
+ */
+@SuppressWarnings("javadoc")
+public @RunWith(Theories.class) class AutoPutTest extends AbstractXMLOutputProcessor {
+	
+	private static final String formatChar(char ch) {
+		return String.format(" char '%s' (0x%04x)", "" + ch, (int)ch);
+	}
+
+	private static final class CheckWriter extends Writer {
+		private final char[] expect;
+		private int cursor = 0;
+		private CheckWriter(String expect) {
+			this.expect = expect.toCharArray();
+		}
+		
+		private final String formatLast() {
+			if (cursor < 10) {
+				return "\"" + new String(expect, 0, cursor) + "\"";
+			}
+			return "\"...{x" + (cursor - 10) + "}" + new String(expect, cursor - 10, 10) + "\"";
+		}
+
+		private void checkChar(char ch) {
+			if (cursor >= expect.length) {
+				fail("We have additional characters. Not expecting " + 
+						formatChar(ch) + " after " + formatLast());
+			}
+			if (ch != expect[cursor]) {
+				fail("Expecting " + formatChar(expect[cursor]) + " not " + 
+						formatChar(ch) + " after " + formatLast());
+			}
+			cursor++;
+		}
+		
+		@Override
+		public void write(char[] cbuf, int off, int len) {
+			for (int i = 0; i < len; i++) {
+				checkChar(cbuf[off + i]);
+			}
+			
+		}
+		@Override
+		public void write(int c) {
+			checkChar((char)c);
+		}
+		
+		@Override
+		public void close() {
+			flush();
+		}
+		
+		@Override
+		public void flush() {
+			// this is called after a complete output.
+			if (cursor < expect.length) {
+				fail ("Expected additional characters after " + formatLast());
+			}
+		}
+		
+	}
+	
+	public TestXMLOutputProcessor() {
+		RAW = Format.getRawFormat();
+		RAW.setEncoding("US-ASCII");
+		fsraw = new FormatStack(RAW);
+	}
+	
+	
+	@Theory
+	public void autoPutTest(Fixture fixture) throws IOException {
+		CheckWriter cw = new CheckWriter(fixture._input[0]);
+		attributeEscapedEntitiesFilter(cw, fsraw, fixture._input[1]);
+		cw.close();
+	}
+
+	private static String[] INPUT1 = { " &quot; &#x153; ' &amp; &lt; &gt; &#xD; &#xA; &#x9; &#x10000; ",
+			" \" \u0153 ' & < > \r \n \t \uD800\uDC00 " };
+
+	private static String[] EXPECTED1 = null;
+
+	private static String[] INPUT2 = { " &quot; ' &amp; &lt; &gt; &#xD; &#xA; &#x9; &#x10000; ",
+			" \" ' & < > \r \n \t \uD800\uDC00 " };
+
+	private static String[] EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private String[] _input;
+		private Object _expected;
+
+		public Fixture(String[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+
+//	@Test
+//	public void testProcessWriterFormatDocument() {
+//		
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testProcessWriterFormatDocType() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testProcessWriterFormatElement() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testProcessWriterFormatListOfQextendsContent() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testProcessWriterFormatCDATA() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testProcessWriterFormatText() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testProcessWriterFormatComment() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testProcessWriterFormatProcessingInstruction() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testProcessWriterFormatEntityRef() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testWriteWriterString() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testWriteWriterChar() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintDocument() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintDeclaration() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintDocType() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintProcessingInstruction() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintComment() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintEntityRef() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintCDATA() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintText() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintElement() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintContent() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintTextConsecutive() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testHelperContentDispatcher() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testHelperTextType() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testHelperRawTextType() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintNamespace() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testPrintAttribute() {
+//		fail("Not yet implemented");
+//	}
+//
+//	@Test
+//	public void testIsAllWhitespace() {
+//		fail("Not yet implemented");
+//	}
+//
+//
+//
+
+}

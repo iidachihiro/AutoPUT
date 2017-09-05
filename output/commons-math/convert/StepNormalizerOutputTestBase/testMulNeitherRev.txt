@@ -1,0 +1,199 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.ode.sampling;
+
+import org.junit.Assert;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.math4.exception.DimensionMismatchException;
+import org.apache.commons.math4.exception.MaxCountExceededException;
+import org.apache.commons.math4.exception.NoBracketingException;
+import org.apache.commons.math4.exception.NumberIsTooSmallException;
+import org.apache.commons.math4.ode.FirstOrderDifferentialEquations;
+import org.apache.commons.math4.ode.FirstOrderIntegrator;
+import org.apache.commons.math4.ode.nonstiff.GraggBulirschStoerIntegrator;
+import org.apache.commons.math4.ode.sampling.FixedStepHandler;
+import org.apache.commons.math4.ode.sampling.StepNormalizer;
+import org.apache.commons.math4.ode.sampling.StepNormalizerBounds;
+import org.apache.commons.math4.ode.sampling.StepNormalizerMode;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/** Base class for step normalizer output tests. */
+public abstract @RunWith(Theories.class) class AutoPutTest
+    implements FirstOrderDifferentialEquations, FixedStepHandler {
+
+    /**
+     * Returns the start time.
+     * @return the start time
+     */
+    protected abstract double getStart();
+
+    /**
+     * Returns the end time.
+     * @return the end time
+     */
+    protected abstract double getEnd();
+
+    /**
+     * Returns the expected normalized output time values for increment mode.
+     * @return the expected normalized output time values for increment mode
+     */
+    protected abstract double[] getExpInc();
+
+    /**
+     * Returns the expected reversed normalized output time values for
+     * increment mode.
+     * @return the expected reversed normalized output time values for
+     * increment mode
+     */
+    protected abstract double[] getExpIncRev();
+
+    /**
+     * Returns the expected normalized output time values for multiples mode.
+     * @return the expected normalized output time values for multiples mode
+     */
+    protected abstract double[] getExpMul();
+
+    /**
+     * Returns the expected reversed normalized output time values for
+     * multiples mode.
+     * @return the expected reversed normalized output time values for
+     * multiples mode
+     */
+    protected abstract double[] getExpMulRev();
+
+    /**
+     * Returns the offsets for the unit tests below, in the order they are
+     * given below. For each test, the left and right offsets are returned.
+     * @return the offsets for the unit tests below, in the order they are
+     * given below
+     */
+    protected abstract int[][] getO();
+
+    /**
+     * Get the array, given left and right offsets.
+     * @param a the input array
+     * @param offsetL the left side offset
+     * @param offsetR the right side offset
+     * @return the modified array
+     */
+    private double[] getArray(double[] a, int offsetL, int offsetR) {
+        double[] copy = new double[a.length - offsetR - offsetL];
+        System.arraycopy(a, offsetL, copy, 0, copy.length);
+        return copy;
+    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture)
+        throws DimensionMismatchException, NumberIsTooSmallException,
+               MaxCountExceededException, NoBracketingException {
+        double[] exp = getArray(getExpMulRev(), getO()[fixture._input[0]][0], getO()[fixture._input[1]][1]);
+        doTest(StepNormalizerMode.MULTIPLES, fixture._input[2], exp, true);
+    }
+
+    /**
+     * The actual step normalizer output test code, shared by all the unit
+     * tests.
+     *
+     * @param mode the step normalizer mode to use
+     * @param bounds the step normalizer bounds setting to use
+     * @param expected the expected output (normalized time points)
+     * @param reverse whether to reverse the integration direction
+     * @throws NoBracketingException
+     * @throws MaxCountExceededException
+     * @throws NumberIsTooSmallException
+     * @throws DimensionMismatchException
+     */
+    private void doTest(StepNormalizerMode mode, StepNormalizerBounds bounds,
+                        double[] expected, boolean reverse)
+        throws DimensionMismatchException, NumberIsTooSmallException,
+               MaxCountExceededException, NoBracketingException {
+        // Forward test.
+        FirstOrderIntegrator integ = new GraggBulirschStoerIntegrator(
+                                                        1e-8, 1.0, 1e-5, 1e-5);
+        integ.addStepHandler(new StepNormalizer(0.5, this, mode, bounds));
+        double[] y   = {0.0};
+        double start = reverse ? getEnd()   : getStart();
+        double end   = reverse ? getStart() : getEnd();
+        output       = new ArrayList<>();
+        integ.integrate(this, start, y, end, y);
+        double[] actual = new double[output.size()];
+        for(int i = 0; i < actual.length; i++) {
+            actual[i] = output.get(i);
+        }
+        Assert.assertArrayEquals(expected, actual, 1e-5);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public int getDimension() {
+        return 1;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void computeDerivatives(double t, double[] y, double[] yDot) {
+        yDot[0] = y[0];
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void init(double t0, double[] y0, double t) {
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void handleStep(double t, double[] y, double[] yDot, boolean isLast) {
+        output.add(t);
+    }
+
+	private static Object[] INPUT1 = { 9, 9, StepNormalizerBounds.NEITHER };
+
+	private static Object[] EXPECTED1 = null;
+
+	private static Object[] INPUT2 = { 11, 11, StepNormalizerBounds.FIRST };
+
+	private static Object[] EXPECTED2 = null;
+
+	private static Object[] INPUT3 = { 13, 13, StepNormalizerBounds.LAST };
+
+	private static Object[] EXPECTED3 = null;
+
+	private static Object[] INPUT4 = { 15, 15, StepNormalizerBounds.BOTH };
+
+	private static Object[] EXPECTED4 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4)};
+
+	public static class Fixture {
+		private Object[] _input;
+		private Object _expected;
+
+		public Fixture(Object[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

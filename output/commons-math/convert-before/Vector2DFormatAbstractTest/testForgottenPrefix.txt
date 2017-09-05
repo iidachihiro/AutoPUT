@@ -1,0 +1,64 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.geometry.euclidean.twod;
+
+import java.text.NumberFormat;
+import java.text.ParsePosition;
+import java.util.Locale;
+
+import org.apache.commons.math4.exception.MathParseException;
+import org.apache.commons.math4.geometry.euclidean.twod.Cartesian2D;
+import org.apache.commons.math4.geometry.euclidean.twod.Vector2DFormat;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+public abstract @RunWith(Parameterized.class) class Vector2DFormatAbstractTest {
+
+    protected abstract Locale getLocale();
+
+    protected abstract char getDecimalCharacter();
+
+    @Test
+    public void tesNegativeInfinity() {
+        Cartesian2D c = Cartesian2D.NEGATIVE_INFINITY;
+        String expected = "{(-Infinity); (-Infinity)}";
+        String actual = vector2DFormat.format(c);
+        Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testForgottenPrefix() {
+        ParsePosition pos = new ParsePosition(0);
+        Assert.assertNull(new Vector2DFormat().parse(_input, pos));
+        Assert.assertEquals(_expected, pos.getErrorIndex());
+    }
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{"1; 1}",0},{"{1 1}",3},{"{1; 1 ",5}});}
+
+	private String _input;
+	private double _expected;
+
+	public AutoPUT(String _input, double _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

@@ -1,0 +1,41 @@
+package org.jdom2.test.cases.input;
+
+import static org.junit.Assert.*;
+
+import org.jdom2.DocType;
+import org.jdom2.JDOMException;
+import org.jdom2.JDOMFactory;
+import org.jdom2.DefaultJDOMFactory;
+import org.jdom2.input.stax.DTDParser;
+import org.jdom2.test.util.UnitTestUtil;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+@SuppressWarnings("javadoc")
+public @RunWith(Parameterized.class) class TestDTDParser {
+
+	@Test
+	public void testParseSYSTEMquotNONE() throws JDOMException {
+		DocType dt = DTDParser.parse(
+				_input, 
+				factory);
+		
+		assertEquals("root", dt.getElementName());
+		assertEquals(null, dt.getPublicID());
+		assertEquals("system", dt.getSystemID());
+		assertEquals(null, dt.getInternalSubset());
+	}
+
+	@Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{"<!DOCTYPE root SYSTEM \"system\"   >",{}},{"<!DOCTYPE root SYSTEM 'system'   >",{}}});}
+
+	private String _input;
+	private Object _expected;
+
+	public AutoPUT(String _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

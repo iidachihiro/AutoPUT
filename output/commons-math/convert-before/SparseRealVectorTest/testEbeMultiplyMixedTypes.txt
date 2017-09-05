@@ -1,0 +1,86 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.linear;
+
+import org.apache.commons.math4.analysis.UnivariateFunction;
+import org.apache.commons.math4.analysis.function.Abs;
+import org.apache.commons.math4.analysis.function.Acos;
+import org.apache.commons.math4.analysis.function.Asin;
+import org.apache.commons.math4.analysis.function.Atan;
+import org.apache.commons.math4.analysis.function.Cbrt;
+import org.apache.commons.math4.analysis.function.Ceil;
+import org.apache.commons.math4.analysis.function.Cos;
+import org.apache.commons.math4.analysis.function.Cosh;
+import org.apache.commons.math4.analysis.function.Exp;
+import org.apache.commons.math4.analysis.function.Expm1;
+import org.apache.commons.math4.analysis.function.Floor;
+import org.apache.commons.math4.analysis.function.Log1p;
+import org.apache.commons.math4.analysis.function.Power;
+import org.apache.commons.math4.analysis.function.Rint;
+import org.apache.commons.math4.analysis.function.Signum;
+import org.apache.commons.math4.analysis.function.Sin;
+import org.apache.commons.math4.analysis.function.Sinh;
+import org.apache.commons.math4.analysis.function.Sqrt;
+import org.apache.commons.math4.analysis.function.Tan;
+import org.apache.commons.math4.analysis.function.Tanh;
+import org.apache.commons.math4.linear.OpenMapRealVector;
+import org.apache.commons.math4.linear.RealVector;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+/**
+ * Test cases for the {@link OpenMapRealVector} class.
+ *
+ */
+public @RunWith(Parameterized.class) class SparseRealVectorTest extends RealVectorAbstractTest {
+
+    @Override
+    public RealVector create(double[] data) {
+        return new OpenMapRealVector(data);
+    }
+
+    @Test
+    @Override
+    public void testEbeMultiplyMixedTypes() {
+        doTestEbeBinaryOperation(_input[0], _input[1], true);
+    }
+
+    @Override
+    protected UnivariateFunction[] createFunctions() {
+        return new UnivariateFunction[] {
+            new Power(2.0), new Exp(), new Expm1(),
+            new Log1p(), new Cosh(), new Sinh(), new Tanh(), new Cos(),
+            new Sin(), new Tan(), new Acos(), new Asin(), new Atan(),
+            new Abs(), new Sqrt(), new Cbrt(), new Ceil(),
+            new Floor(), new Rint(), new Signum()
+        };
+    }
+
+	@Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{BinaryOperation.MUL,true},{}},{{BinaryOperation.MUL,false},{}},{{BinaryOperation.DIV,false},{}}});}
+
+	private Object[] _input;
+	private Object _expected;
+
+	public AutoPUT(Object[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

@@ -1,0 +1,150 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.stat.regression;
+
+import org.apache.commons.math4.TestUtils;
+import org.apache.commons.math4.exception.MathIllegalArgumentException;
+import org.apache.commons.math4.linear.RealMatrix;
+import org.apache.commons.math4.stat.correlation.PearsonsCorrelation;
+import org.apache.commons.math4.stat.regression.MillerUpdatingRegression;
+import org.apache.commons.math4.stat.regression.OLSMultipleLinearRegression;
+import org.apache.commons.math4.stat.regression.RegressionResults;
+import org.apache.commons.math4.util.FastMath;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+/**
+ * MillerUpdatingRegression tests.
+ */
+public @RunWith(Parameterized.class) class MillerUpdatingRegressionTest {
+
+    @Test
+    public void testWampler1() {
+        double[] data = new double[]{
+            _input[0], 0,
+            _input[1], 1,
+            _input[2], 2,
+            _input[3], 3,
+            _input[4], 4,
+            _input[5], 5,
+            _input[6], 6,
+            _input[7], 7,
+            _input[8], 8,
+            _input[9], 9,
+            _input[10], 10,
+            _input[11], 11,
+            _input[12], 12,
+            _input[13], 13,
+            _input[14], 14,
+            _input[15], 15,
+            _input[16], 16,
+            _input[17], 17,
+            _input[18], 18,
+            _input[19], 19,
+            _input[20], 20};
+
+        MillerUpdatingRegression model = new MillerUpdatingRegression(5, true);
+        int off = 0;
+        double[] tmp = new double[5];
+        int nobs = 21;
+        for (int i = 0; i < nobs; i++) {
+            tmp[0] = data[off + 1];
+            tmp[1] = tmp[0] * tmp[0];
+            tmp[2] = tmp[0] * tmp[1];
+            tmp[3] = tmp[0] * tmp[2];
+            tmp[4] = tmp[0] * tmp[3];
+            model.addObservation(tmp, data[off]);
+            off += 2;
+        }
+        RegressionResults result = model.regress();
+        double[] betaHat = result.getParameterEstimates();
+        TestUtils.assertEquals(betaHat,
+                new double[]{1.0,
+                    1.0, 1.0,
+                    1.0, 1.0,
+                    1.0}, 1E-8); //
+//
+        double[] se = result.getStdErrorOfEstimates();
+        TestUtils.assertEquals(se,
+                new double[]{_input[21],
+                    _input[22], _input[23],
+                    _input[24], _input[25],
+                    _input[26]}, 1E-8); //
+
+        TestUtils.assertEquals(_input[27], result.getRSquared(), 1.0e-10);
+        TestUtils.assertEquals(_input[28], result.getMeanSquareError(), 1.0e-7);
+        TestUtils.assertEquals(_input[29], result.getErrorSumSquares(), 1.0e-6);
+
+        return;
+    }
+
+    
+
+//    @Test
+//    public void testRegressReorder() {
+//        // System.out.println("testRegressReorder");
+//        MillerUpdatingRegression instance = new MillerUpdatingRegression(4, false);
+//        double[][] x = new double[airdata[0].length][];
+//        double[] y = new double[airdata[0].length];
+//        for (int i = 0; i < airdata[0].length; i++) {
+//            x[i] = new double[4];
+//            x[i][0] = 1.0;
+//            x[i][1] = FastMath.log(airdata[3][i]);
+//            x[i][2] = FastMath.log(airdata[4][i]);
+//            x[i][3] = airdata[5][i];
+//            y[i] = FastMath.log(airdata[2][i]);
+//        }
+//
+//        instance.addObservations(x, y);
+//        RegressionResults result = instance.regress();
+//        if (result == null) {
+//            Assert.fail("Null result....");
+//        }
+//
+//        instance.reorderRegressors(new int[]{3, 2}, 0);
+//        RegressionResults resultInverse = instance.regress();
+//
+//        double[] beta = result.getParameterEstimates();
+//        double[] betar = resultInverse.getParameterEstimates();
+//        if (FastMath.abs(beta[0] - betar[0]) > 1.0e-14) {
+//            Assert.fail("Parameters not correct after reorder (0,3)");
+//        }
+//        if (FastMath.abs(beta[1] - betar[1]) > 1.0e-14) {
+//            Assert.fail("Parameters not correct after reorder (1,2)");
+//        }
+//        if (FastMath.abs(beta[2] - betar[2]) > 1.0e-14) {
+//            Assert.fail("Parameters not correct after reorder (2,1)");
+//        }
+//        if (FastMath.abs(beta[3] - betar[3]) > 1.0e-14) {
+//            Assert.fail("Parameters not correct after reorder (3,0)");
+//        }
+//    }
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{1,6,63,364,1365,3906,9331,19608,37449,66430,111111,177156,271453,402234,579195,813616,1118481,1508598,2000719,2613660,3368421,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0,0.00},{}},{{1.00000,1.11111,1.24992,1.42753,1.65984,1.96875,2.38336,2.94117,3.68928,4.68559,6.00000,7.71561,9.92992,12.75603,16.32384,20.78125,26.29536,33.05367,41.26528,51.16209,63.00000,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0,0.00},{}},{{760,-2042,2111,-1684,3888,1858,11379,17560,39287,64382,113159,175108,273291,400186,581243,811568,1121004,1506550,2002767,2611612,3369180,2152.32624678170,2363.55173469681,779.343524331583,101.475507550350,5.64566512170752,0.112324854679312,.999995559025820,5570284.53333333,83554268.0000000},{}}});}
+	private double[] _input;
+	private Object _expected;
+
+	public AutoPUT(double[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+
+}

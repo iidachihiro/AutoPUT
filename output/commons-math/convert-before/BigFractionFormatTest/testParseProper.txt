@@ -1,0 +1,78 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.fraction;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.text.NumberFormat;
+import java.util.Locale;
+
+import org.apache.commons.math4.exception.MathParseException;
+import org.apache.commons.math4.fraction.BigFraction;
+import org.apache.commons.math4.fraction.BigFractionFormat;
+import org.apache.commons.math4.fraction.ProperBigFractionFormat;
+import org.apache.commons.math4.util.FastMath;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+
+public @RunWith(Parameterized.class) class BigFractionFormatTest {
+
+    protected Locale getLocale() {
+        return Locale.getDefault();
+    }
+
+    @Before
+    public void setUp() {
+        properFormat = BigFractionFormat.getProperInstance(getLocale());
+        improperFormat = BigFractionFormat.getImproperInstance(getLocale());
+    }
+
+    @Test
+    public void testParseProper() {
+        String source = _input;
+
+        {
+            BigFraction c = properFormat.parse(source);
+            Assert.assertNotNull(c);
+            Assert.assertEquals(_expected, c.getNumeratorAsInt());
+            Assert.assertEquals(3, c.getDenominatorAsInt());
+        }
+
+        try {
+            improperFormat.parse(source);
+            Assert.fail("invalid improper fraction.");
+        } catch (MathParseException ex) {
+            // success
+        }
+    }
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{"1 2 / 3",5},{"-1 2 / 3",-5}});}
+
+	private String _input;
+	private double _expected;
+
+	public AutoPUT(String _input, double _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+}

@@ -1,0 +1,136 @@
+package org.jdom2.test.cases;
+
+import static org.jdom2.test.util.UnitTestUtil.checkEquals;
+import static org.jdom2.test.util.UnitTestUtil.cloneString;
+import static org.jdom2.test.util.UnitTestUtil.deSerialize;
+import static org.junit.Assert.*;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.jdom2.Element;
+import org.jdom2.IllegalDataException;
+import org.jdom2.IllegalNameException;
+import org.jdom2.IllegalTargetException;
+import org.jdom2.ProcessingInstruction;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+@SuppressWarnings("javadoc")
+public @RunWith(Parameterized.class) class TestProcessingInstruction {
+
+	@Test (expected=IllegalDataException.class)
+	public void testIllegalAttnameB() {
+		ProcessingInstruction pi = new ProcessingInstruction("tgt", buildMap("ok", "val"));
+		pi.setPseudoAttribute(_input[0], _input[1]);
+	}
+	
+	private void checkMapValues(ProcessingInstruction pi, Map<String, String> vals) {
+		for (Map.Entry<String,String> me : vals.entrySet()) {
+			checkEquals(pi.getPseudoAttributeValue(me.getKey()), me.getValue());
+		}
+		for (Object s : pi.getPseudoAttributeNames() ) {
+			if (!vals.containsKey(s)) {
+				fail("ProcessingInstruction has key " + s + " which is not expected.");
+			}
+		}
+	}
+	
+	private Map<String,String> buildMap(String...kvpairs) {
+		assertTrue(kvpairs != null);
+		assertTrue(kvpairs.length % 2 == 0);
+		LinkedHashMap<String, String> lhm = new LinkedHashMap<String, String>();
+		for (int i = 0; i < kvpairs.length; i += 2) {
+			lhm.put(kvpairs[i], kvpairs[i+1]);
+		}
+		return lhm;
+	}
+
+	private void exercise(Map<String,String> data) {
+		exerciseQuotes("'", "'", data);
+		exerciseQuotes("\"", "\"", data);
+		exerciseQuotes("	\"", "\"	", data);
+		exerciseQuotes(" '", "' ", data);
+		exerciseQuotes("	'", "'	", data);
+		data.put("quote", "Foo'd up!");
+		exerciseQuotes("\"", "\"", data);
+		data.put("quote", "This is a \"quoted\" value.");
+		exerciseQuotes(" '", "' ", data);
+		data.remove("quote");
+		ProcessingInstruction pi = new ProcessingInstruction("tgt", data);
+		for (Map.Entry<String, String> me : data.entrySet()) {
+			assertEquals(me.getValue(), pi.getPseudoAttributeValue(me.getKey()));
+			assertTrue(pi.removePseudoAttribute(me.getKey()));
+			assertFalse(pi.removePseudoAttribute(me.getKey()));
+		}
+		for (Map.Entry<String, String> me : data.entrySet()) {
+			assertTrue(null == pi.getPseudoAttributeValue(me.getKey()));
+			assertFalse(pi.removePseudoAttribute(me.getKey()));
+			assertTrue(pi == pi.setPseudoAttribute(me.getKey(), me.getValue()));
+			assertEquals(me.getValue(), pi.getPseudoAttributeValue(me.getKey()));
+		}
+		checkEquals(mapValue(data), pi.getData());
+		
+	}
+
+	private void exerciseQuotes(String open, String close,
+			Map<String, String> data) {
+		StringBuilder sb = new StringBuilder();
+		int cnt = 0;
+		for(Map.Entry<String, String> me : data.entrySet()) {
+			if (cnt++ > 0) {
+				sb.append(" ");
+			}
+			sb.append(me.getKey()).append("=").append(open).append(me.getValue()).append(close);
+		}
+		ProcessingInstruction pi = new ProcessingInstruction("test", sb.toString());
+		checkEquals(pi.getData(), sb.toString());
+		List<?> keys = pi.getPseudoAttributeNames();
+		assertTrue(keys != null);
+		assertTrue(keys.size() == data.size());
+		assertTrue(keys.containsAll(data.keySet()));
+		assertTrue(data.keySet().containsAll(keys));
+		for (Map.Entry<String,String> me : data.entrySet()) {
+			String val = pi.getPseudoAttributeValue(me.getKey());
+			assertTrue(val != null);
+			String x = me.getValue();
+			if (!x.equals(val)) {
+				fail("We expected value '" + x + "' but got '" + val + "'.");
+			}
+		}
+		assertEquals(pi.getData(), pi.getValue());
+		// ProcessingInstruction does not change the quoting unless you mess with
+		// attribute values.
+		assertEquals(pi.getData(), pi.getValue());
+		pi.setPseudoAttribute("foo", "bar");
+		pi.removePseudoAttribute("foo");
+		checkEquals(pi.getData(), mapValue(data));
+	}
+	
+	private String mapValue(Map<String,String> data) {
+		StringBuilder sb = new StringBuilder();
+		for (Map.Entry<String,String> me : data.entrySet()) {
+			if (sb.length() > 0) {
+				sb.append(" ");
+			}
+			sb.append(me.getKey()).append("=\"").append(me.getValue()).append("\"");
+		}
+		return sb.toString();
+	}
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{"b?>a","val"},{}},{{"b a","v?>al"},{}}});}
+
+	private String[] _input;
+	private Object _expected;
+
+	public AutoPUT(String[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

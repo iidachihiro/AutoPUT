@@ -1,0 +1,171 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.geometry.euclidean.twod.hull;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.commons.numbers.core.Precision;
+import org.apache.commons.numbers.arrays.LinearCombination;
+import org.apache.commons.rng.UniformRandomProvider;
+import org.apache.commons.rng.simple.RandomSource;
+import org.apache.commons.math4.exception.NullArgumentException;
+import org.apache.commons.math4.geometry.euclidean.twod.Euclidean2D;
+import org.apache.commons.math4.geometry.euclidean.twod.Cartesian2D;
+import org.apache.commons.math4.geometry.euclidean.twod.hull.ConvexHull2D;
+import org.apache.commons.math4.geometry.euclidean.twod.hull.ConvexHullGenerator2D;
+import org.apache.commons.math4.geometry.partitioning.Region;
+import org.apache.commons.math4.geometry.partitioning.Region.Location;
+import org.apache.commons.math4.util.FastMath;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+/**
+ * Abstract base test class for 2D convex hull generators.
+ *
+ */
+public abstract @RunWith(Parameterized.class) class ConvexHullGenerator2DAbstractTest {
+
+    protected abstract ConvexHullGenerator2D createConvexHullGenerator(boolean includeCollinearPoints);
+
+    protected Collection<Cartesian2D> reducePoints(Collection<Cartesian2D> points) {
+        // do nothing by default, may be overridden by other tests
+        return points;
+    }
+
+    @Before
+    public void setUp() {
+        // by default, do not include collinear points
+        generator = createConvexHullGenerator(false);
+        random = RandomSource.create(RandomSource.MT, 10);
+    }
+
+    // ------------------------------------------------------------------------------
+
+    @Test
+    public void testCollinearPoints() {
+        final Collection<Cartesian2D> points = new ArrayList<>();
+        points.add(new Cartesian2D(1, 1));
+        points.add(new Cartesian2D(2, 2));
+        points.add(new Cartesian2D(2, 4));
+        points.add(new Cartesian2D(_input[0], 1));
+        points.add(new Cartesian2D(_input[1], 1));
+
+        final ConvexHull2D hull = generator.generate(points);
+        checkConvexHull(points, hull);
+    }
+
+    
+
+    // ------------------------------------------------------------------------------
+
+    protected final List<Cartesian2D> createRandomPoints(int size) {
+        // create the cloud container
+        List<Cartesian2D> points = new ArrayList<>(size);
+        // fill the cloud with a random distribution of points
+        for (int i = 0; i < size; i++) {
+            points.add(new Cartesian2D(random.nextDouble() * 2.0 - 1.0, random.nextDouble() * 2.0 - 1.0));
+        }
+        return points;
+    }
+
+    protected final void checkConvexHull(final Collection<Cartesian2D> points, final ConvexHull2D hull) {
+        checkConvexHull(points, hull, false);
+    }
+
+    protected final void checkConvexHull(final Collection<Cartesian2D> points, final ConvexHull2D hull,
+                                         final boolean includesCollinearPoints) {
+        checkConvexHull(points, hull, includesCollinearPoints, 1e-10);
+    }
+
+    protected final void checkConvexHull(final Collection<Cartesian2D> points, final ConvexHull2D hull,
+                                         final boolean includesCollinearPoints, final double tolerance) {
+        Assert.assertNotNull(hull);
+        Assert.assertTrue(isConvex(hull, includesCollinearPoints, tolerance));
+        checkPointsInsideHullRegion(points, hull, includesCollinearPoints);
+    }
+
+    // verify that the constructed hull is really convex
+    protected final boolean isConvex(final ConvexHull2D hull, final boolean includesCollinearPoints,
+                                     final double tolerance) {
+
+        final Cartesian2D[] points = hull.getVertices();
+        int sign = 0;
+
+        for (int i = 0; i < points.length; i++) {
+            Cartesian2D p1 = points[i == 0 ? points.length - 1 : i - 1];
+            Cartesian2D p2 = points[i];
+            Cartesian2D p3 = points[i == points.length - 1 ? 0 : i + 1];
+
+            Cartesian2D d1 = p2.subtract(p1);
+            Cartesian2D d2 = p3.subtract(p2);
+
+            Assert.assertTrue(d1.getNorm() > 1e-10);
+            Assert.assertTrue(d2.getNorm() > 1e-10);
+
+            final double cross = LinearCombination.value(d1.getX(), d2.getY(), -d1.getY(), d2.getX());
+            final int cmp = Precision.compareTo(cross, 0.0, tolerance);
+
+            if (sign != 0 && cmp != sign) {
+                if (includesCollinearPoints && cmp == 0) {
+                    // in case of collinear points the cross product will be zero
+                } else {
+                    return false;
+                }
+            }
+
+            sign = cmp;
+        }
+
+        return true;
+    }
+
+    // verify that all points are inside the convex hull region
+    protected final void checkPointsInsideHullRegion(final Collection<Cartesian2D> points,
+                                                     final ConvexHull2D hull,
+                                                     final boolean includesCollinearPoints) {
+
+        final Collection<Cartesian2D> hullVertices = Arrays.asList(hull.getVertices());
+        final Region<Euclidean2D> region = hull.createRegion();
+
+        for (final Cartesian2D p : points) {
+            Location location = region.checkPoint(p);
+            Assert.assertTrue(location != Location.OUTSIDE);
+
+            if (location == Location.BOUNDARY && includesCollinearPoints) {
+                Assert.assertTrue(hullVertices.contains(p));
+            }
+        }
+    }
+
+	@Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{4,10},{}},{{10,4},{}},{{4,1},{}},{{4,1.00001},{}}});}
+
+	private double[] _input;
+	private Object _expected;
+
+	public AutoPUT(double[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+}

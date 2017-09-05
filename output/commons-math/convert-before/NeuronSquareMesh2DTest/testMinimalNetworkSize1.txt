@@ -1,0 +1,67 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.ml.neuralnet.twod;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.Collection;
+import java.util.Set;
+import java.util.HashSet;
+
+import org.apache.commons.math4.exception.NumberIsTooSmallException;
+import org.apache.commons.math4.exception.OutOfRangeException;
+import org.apache.commons.math4.ml.neuralnet.FeatureInitializer;
+import org.apache.commons.math4.ml.neuralnet.FeatureInitializerFactory;
+import org.apache.commons.math4.ml.neuralnet.Network;
+import org.apache.commons.math4.ml.neuralnet.Neuron;
+import org.apache.commons.math4.ml.neuralnet.SquareNeighbourhood;
+import org.apache.commons.math4.ml.neuralnet.twod.NeuronSquareMesh2D;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+/**
+ * Tests for {@link NeuronSquareMesh2D} and {@link Network} functionality for
+ * a two-dimensional network.
+ */
+public @RunWith(Parameterized.class) class NeuronSquareMesh2DTest {
+    @Test(expected=NumberIsTooSmallException.class)
+    public void testMinimalNetworkSize1() {
+        final FeatureInitializer[] initArray = { init };
+
+        new NeuronSquareMesh2D(_input[0], false,
+                               _input[1], false,
+                               SquareNeighbourhood.VON_NEUMANN,
+                               initArray);
+    }
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{1,2},{}},{{2,0},{}}});}
+
+	private double[] _input;
+	private Object _expected;
+
+	public AutoPUT(double[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+}

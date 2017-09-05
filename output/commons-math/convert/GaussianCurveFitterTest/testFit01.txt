@@ -1,0 +1,97 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.fitting;
+
+import org.apache.commons.math4.exception.MathIllegalArgumentException;
+import org.apache.commons.math4.exception.TooManyIterationsException;
+import org.apache.commons.math4.fitting.GaussianCurveFitter;
+import org.apache.commons.math4.fitting.WeightedObservedPoints;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * Tests {@link GaussianCurveFitter}.
+ *
+ */
+public @RunWith(Theories.class) class AutoPutTest {
+    /**
+     * Basic.
+     */
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        GaussianCurveFitter fitter = GaussianCurveFitter.create();
+        double[] parameters = fitter.fit(createDataset(DATASET1).toList());
+
+        Assert.assertEquals(fixture._input[0], parameters[0], 1e-4);
+        Assert.assertEquals(fixture._input[1], parameters[1], 1e-4);
+        Assert.assertEquals(fixture._input[2], parameters[2], 1e-4);
+    }
+
+    /**
+     * Adds the specified points to specified <code>GaussianCurveFitter</code>
+     * instance.
+     *
+     * @param points Data points where first dimension is a point index and
+     *        second dimension is an array of length two representing the point
+     *        with the first value corresponding to X and the second value
+     *        corresponding to Y.
+     * @return the collection of observed points.
+     */
+    private static WeightedObservedPoints createDataset(double[][] points) {
+        final WeightedObservedPoints obs = new WeightedObservedPoints();
+        for (int i = 0; i < points.length; i++) {
+            obs.add(points[i][0], points[i][1]);
+        }
+        return obs;
+    }
+
+	private static double[] INPUT1 = { 3496978.1837704973, 4.054933085999146, 0.015039355620304326 };
+
+	private static double[] EXPECTED1 = null;
+
+	private static double[] INPUT2 = { 233003.2967252038, -10.654887521095983, 4.335937353196641 };
+
+	private static double[] EXPECTED2 = null;
+
+	private static double[] INPUT3 = { 283863.81929180305, -13.29641995105174, 1.7297330293549908 };
+
+	private static double[] EXPECTED3 = null;
+
+	private static double[] INPUT4 = { 285250.66754309234, -13.528375695228455, 1.5204344894331614 };
+
+	private static double[] EXPECTED4 = null;
+
+	private static double[] INPUT5 = { 3514384.729342235, 4.054970307455625, 0.015029412832160017 };
+
+	private static double[] EXPECTED5 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5)};
+
+	public static class Fixture {
+		private double[] _input;
+		private Object _expected;
+
+		public Fixture(double[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

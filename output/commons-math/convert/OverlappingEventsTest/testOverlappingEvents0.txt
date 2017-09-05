@@ -1,0 +1,130 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.ode.events;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.math4.analysis.solvers.BaseSecantSolver;
+import org.apache.commons.math4.analysis.solvers.PegasusSolver;
+import org.apache.commons.math4.exception.DimensionMismatchException;
+import org.apache.commons.math4.exception.MaxCountExceededException;
+import org.apache.commons.math4.exception.NoBracketingException;
+import org.apache.commons.math4.exception.NumberIsTooSmallException;
+import org.apache.commons.math4.ode.FirstOrderDifferentialEquations;
+import org.apache.commons.math4.ode.FirstOrderIntegrator;
+import org.apache.commons.math4.ode.events.EventHandler;
+import org.apache.commons.math4.ode.nonstiff.DormandPrince853Integrator;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/** Tests for overlapping state events. Also tests an event function that does
+ * not converge to zero, but does have values of opposite sign around its root.
+ */
+public @RunWith(Theories.class) class AutoPutTest implements FirstOrderDifferentialEquations {
+
+    /** Test for events that occur at the exact same time, but due to numerical
+     * calculations occur very close together instead. Uses event type 0. See
+     * {@link org.apache.commons.math4.ode.events.EventHandler#g(double, double[])
+     * EventHandler.g(double, double[])}.
+     */
+    @Theory
+	public void autoPutTest(Fixture fixture)
+        throws DimensionMismatchException, NumberIsTooSmallException,
+               MaxCountExceededException, NoBracketingException {
+        test(_input.fixture);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public int getDimension() {
+        return 2;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void computeDerivatives(double t, double[] y, double[] yDot) {
+        yDot[0] = 1.0;
+        yDot[1] = 2.0;
+    }
+
+    /** State events for this unit test. */
+    private class Event implements EventHandler {
+        /** The index of the continuous variable to use. */
+        private final int idx;
+
+        /** The event type to use. See {@link #g}. */
+        private final int eventType;
+
+        /** Constructor for the {@link Event} class.
+         * @param idx the index of the continuous variable to use
+         * @param eventType the type of event to use. See {@link #g}
+         */
+        public Event(int idx, int eventType) {
+            this.idx = idx;
+            this.eventType = eventType;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void init(double t0, double[] y0, double t) {
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public double g(double t, double[] y) {
+            return (eventType == 0) ? y[idx] >= 1.0 ? 1.0 : -1.0
+                                    : y[idx] - 1.0;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public Action eventOccurred(double t, double[] y, boolean increasing) {
+            return Action.STOP;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void resetState(double t, double[] y) {
+            // Never called.
+        }
+    }
+
+	private static double INPUT1 = 0;
+
+	private static double EXPECTED1 = null;
+
+	private static double INPUT2 = 1;
+
+	private static double EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private double _input;
+		private Object _expected;
+
+		public Fixture(double _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

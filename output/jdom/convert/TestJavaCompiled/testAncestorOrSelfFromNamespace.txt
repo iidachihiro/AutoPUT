@@ -1,0 +1,89 @@
+package org.jdom2.test.cases.xpath;
+
+import org.junit.Test;
+
+import org.jdom2.contrib.xpath.java.JavaXPathFactory;
+import org.jdom2.xpath.XPathFactory;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+@SuppressWarnings({"javadoc"})
+public @RunWith(Theories.class) class AutoPutTest extends AbstractTestXPathCompiled {
+	
+	public TestJavaCompiled() {
+		super(false);
+	}
+
+	@Override
+	XPathFactory getFactory() {
+		return myfac;
+	}
+	
+	@Theory
+	@Override
+	public void autoPutTest(Fixture fixture) {
+		// nothing
+	}
+
+	@Override
+	public void getXPathDouble() {
+		// nothing
+	}
+
+	@Override
+	public void getXPathString() {
+		// nothing
+	}
+
+	@Override
+	public void getXPathBoolean() {
+		// nothing
+	}
+
+	private static Object INPUT1 = null;
+
+	private static Object EXPECTED1 = null;
+
+	private static Object INPUT2 = null;
+
+	private static Object EXPECTED2 = null;
+
+	private static Object INPUT3 = null;
+
+	private static Object EXPECTED3 = null;
+
+	private static Object INPUT4 = null;
+
+	private static Object EXPECTED4 = null;
+
+	private static Object INPUT5 = null;
+
+	private static Object EXPECTED5 = null;
+
+	private static Object INPUT6 = null;
+
+	private static Object EXPECTED6 = null;
+
+	private static Object INPUT7 = null;
+
+	private static Object EXPECTED7 = null;
+
+	private static Object INPUT8 = null;
+
+	private static Object EXPECTED8 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5),new Fixture(INPUT6,EXPECTED6),new Fixture(INPUT7,EXPECTED7),new Fixture(INPUT8,EXPECTED8)};
+
+	public static class Fixture {
+		private Object _input;
+		private Object _expected;
+
+		public Fixture(Object _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+	
+}

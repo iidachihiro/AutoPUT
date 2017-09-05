@@ -1,0 +1,322 @@
+/*
+ *  Copyright 2001-2014 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FilePermission;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Modifier;
+import java.security.AllPermission;
+import java.security.CodeSource;
+import java.security.Permission;
+import java.security.PermissionCollection;
+import java.security.Permissions;
+import java.security.Policy;
+import java.security.ProtectionDomain;
+import java.text.DateFormatSymbols;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.TimeZone;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.tz.DefaultNameProvider;
+import org.joda.time.tz.NameProvider;
+import org.joda.time.tz.Provider;
+import org.joda.time.tz.UTCProvider;
+import org.joda.time.tz.ZoneInfoProvider;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * This class is a JUnit test for DateTimeZone.
+ *
+ * @author Stephen Colebourne
+ */
+public @RunWith(Theories.class) class AutoPutTest extends TestCase {
+    static {
+        String str = System.getProperty("java.version");
+        boolean old = true;
+        if (str.length() > 3 &&
+            str.charAt(0) == '1' &&
+            str.charAt(1) == '.' &&
+            (str.charAt(2) == '4' || str.charAt(2) == '5' || str.charAt(2) == '6')) {
+            old = false;
+        }
+        OLD_JDK = old;
+    }
+    
+    // Test in 2002/03 as time zones are more well known
+    // (before the late 90's they were all over the place)
+
+    
+            
+//    // 2002-04-05 Fri
+//    private long TEST_TIME1 =
+//            (y2002days + 31L + 28L + 31L + 5L -1L) * DateTimeConstants.MILLIS_PER_DAY
+//            + 12L * DateTimeConstants.MILLIS_PER_HOUR
+//            + 24L * DateTimeConstants.MILLIS_PER_MINUTE;
+//        
+//    // 2003-05-06 Tue
+//    private long TEST_TIME2 =
+//            (y2003days + 31L + 28L + 31L + 30L + 6L -1L) * DateTimeConstants.MILLIS_PER_DAY
+//            + 14L * DateTimeConstants.MILLIS_PER_HOUR
+//            + 28L * DateTimeConstants.MILLIS_PER_MINUTE;
+    
+    static {
+        // don't call Policy.getPolicy()
+        RESTRICT = new Policy() {
+            public PermissionCollection getPermissions(CodeSource codesource) {
+                Permissions p = new Permissions();
+                p.add(new AllPermission());  // enable everything
+                return p;
+            }
+            public void refresh() {
+            }
+            public boolean implies(ProtectionDomain domain, Permission permission) {
+                if (permission instanceof JodaTimePermission) {
+                    return false;
+                }
+                return true;
+//                return super.implies(domain, permission);
+            }
+        };
+        ALLOW = new Policy() {
+            public PermissionCollection getPermissions(CodeSource codesource) {
+                Permissions p = new Permissions();
+                p.add(new AllPermission());  // enable everything
+                return p;
+            }
+            public void refresh() {
+            }
+        };
+    }
+    
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestDateTimeZone.class);
+    }
+
+    public TestDateTimeZone(String name) {
+        super(name);
+    }
+
+    protected void setUp() throws Exception {
+        locale = Locale.getDefault();
+        zone = DateTimeZone.getDefault();
+        Locale.setDefault(Locale.UK);
+    }
+
+    protected void tearDown() throws Exception {
+        Locale.setDefault(locale);
+        DateTimeZone.setDefault(zone);
+    }
+
+    static class MockNullIDSProvider implements Provider {
+        public Set getAvailableIDs() {
+            return null;
+        }
+        public DateTimeZone getZone(String id) {
+            return null;
+        }
+    }
+    static class MockEmptyIDSProvider implements Provider {
+        public Set getAvailableIDs() {
+            return new HashSet();
+        }
+        public DateTimeZone getZone(String id) {
+            return null;
+        }
+    }
+    static class MockNoUTCProvider implements Provider {
+        public Set getAvailableIDs() {
+            Set set = new HashSet();
+            set.add("Europe/London");
+            return set;
+        }
+        public DateTimeZone getZone(String id) {
+            return null;
+        }
+    }
+    static class MockBadUTCProvider implements Provider {
+        public Set getAvailableIDs() {
+            Set set = new HashSet();
+            set.add("UTC");
+            set.add("Europe/London");
+            return set;
+        }
+        public DateTimeZone getZone(String id) {
+            return null;
+        }
+    }
+    static class MockOKProvider implements Provider {
+        public Set getAvailableIDs() {
+            Set set = new HashSet();
+            set.add("UTC");
+            set.add("Europe/London");
+            return set;
+        }
+        public DateTimeZone getZone(String id) {
+            return DateTimeZone.UTC;
+        }
+    }
+
+    static class MockOKButNullNameProvider implements NameProvider {
+        public String getShortName(Locale locale, String id, String nameKey) {
+            return null;
+        }
+        public String getName(Locale locale, String id, String nameKey) {
+            return null;
+        }
+    }
+
+    static {
+        boolean jdk6 = true;
+        try {
+            DateFormatSymbols.class.getMethod("getInstance", new Class[] { Locale.class });
+        } catch (Exception ex) {
+            jdk6 = false;
+        }
+        JDK6PLUS = jdk6;
+    }
+
+    static {
+        boolean jdk9 = true;
+        try {
+            String str = System.getProperty("java.version");
+            jdk9 = str.startsWith("9");
+        } catch (Exception ex) {
+            jdk9 = false;
+        }
+        JDK9 = jdk9;
+    }
+
+    static class MockDateTimeZone extends DateTimeZone {
+        public MockDateTimeZone(String id) {
+            super(id);
+        }
+        public String getNameKey(long instant) {
+            return null;  // null
+        }
+        public int getOffset(long instant) {
+            return 0;
+        }
+        public int getStandardOffset(long instant) {
+            return 0;
+        }
+        public boolean isFixed() {
+            return false;
+        }
+        public long nextTransition(long instant) {
+            return 0;
+        }
+        public long previousTransition(long instant) {
+            return 0;
+        }
+        public boolean equals(Object object) {
+            return false;
+        }
+    }
+
+    
+
+//    //-----------------------------------------------------------------------
+//    public void testIsLocalDateTimeOverlap_Berlin() {
+//        DateTimeZone zone = DateTimeZone.forID("Europe/Berlin");
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 10, 28, 1, 0)));
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 10, 28, 1, 59, 59, 99)));
+//        assertEquals(true, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 10, 28, 2, 0)));
+//        assertEquals(true, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 10, 28, 2, 30)));
+//        assertEquals(true, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 10, 28, 2, 59, 59, 99)));
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 10, 28, 3, 0)));
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 10, 28, 4, 0)));
+//        
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 3, 25, 1, 30)));  // before gap
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 3, 25, 2, 30)));  // gap
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 3, 25, 3, 30)));  // after gap
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 12, 24, 12, 34)));
+//    }
+//
+//    //-----------------------------------------------------------------------
+//    public void testIsLocalDateTimeOverlap_NewYork() {
+//        DateTimeZone zone = DateTimeZone.forID("America/New_York");
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 11, 4, 0, 0)));
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 11, 4, 0, 59, 59, 99)));
+//        assertEquals(true, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 11, 4, 1, 0)));
+//        assertEquals(true, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 11, 4, 1, 30)));
+//        assertEquals(true, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 11, 4, 1, 59, 59, 99)));
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 11, 4, 2, 0)));
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 11, 4, 3, 0)));
+//        
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 3, 11, 1, 30)));  // before gap
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 3, 11, 2, 30)));  // gap
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 3, 11, 3, 30)));  // after gap
+//        assertEquals(false, zone.isLocalDateTimeOverlap(new LocalDateTime(2007, 12, 24, 12, 34)));
+//    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture) throws Exception {
+        // the tz database does not have unique name keys [1716305]
+        DateTimeZone zone = DateTimeZone.forID(fixture._input[0]);
+        
+        DateTime now = new DateTime(fixture._input[1], 1, 1, 0, 0, 0, 0);
+        String str1 = zone.getName(now.getMillis());
+        String str2 = zone.getName(now.plusMonths(6).getMillis());
+        assertEquals(false, str1.equals(str2));
+    }
+
+    private static Object[] INPUT1 = { "Europe/London", 2007 };
+
+	private static Object[] EXPECTED1 = null;
+
+	private static Object[] INPUT2 = { "Australia/Sydney", 2007 };
+
+	private static Object[] EXPECTED2 = null;
+
+	private static Object[] INPUT3 = { "Australia/Sydney", 1996 };
+
+	private static Object[] EXPECTED3 = null;
+
+	private static Object[] INPUT4 = { "Africa/Johannesburg", 1943 };
+
+	private static Object[] EXPECTED4 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4)};
+
+	public static class Fixture {
+		private Object[] _input;
+		private Object _expected;
+
+		public Fixture(Object[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

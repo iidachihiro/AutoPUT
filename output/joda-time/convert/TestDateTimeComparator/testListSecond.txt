@@ -1,0 +1,249 @@
+/*
+ *  Copyright 2001-2005 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.chrono.ISOChronology;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+/**
+ * This class is a Junit unit test for the
+ * org.joda.time.DateTimeComparator class.
+ *
+ * @author Guy Allard
+ */
+public @RunWith(Theories.class) class AutoPutTest extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestDateTimeComparator.class);
+    }
+
+    public TestDateTimeComparator(String name) {
+        super(name);
+    }
+
+    /**
+     * Junit <code>setUp()</code> method.
+     */
+    public void setUp() /* throws Exception */ {
+        Chronology chrono = ISOChronology.getInstanceUTC();
+
+        // super.setUp();
+        // Obtain comparator's
+        cMillis = DateTimeComparator.getInstance(null, DateTimeFieldType.secondOfMinute());
+        cSecond = DateTimeComparator.getInstance(DateTimeFieldType.secondOfMinute(), DateTimeFieldType.minuteOfHour());
+        cMinute = DateTimeComparator.getInstance(DateTimeFieldType.minuteOfHour(), DateTimeFieldType.hourOfDay());
+        cHour = DateTimeComparator.getInstance(DateTimeFieldType.hourOfDay(), DateTimeFieldType.dayOfYear());
+        cDayOfWeek = DateTimeComparator.getInstance(DateTimeFieldType.dayOfWeek(), DateTimeFieldType.weekOfWeekyear());
+        cDayOfMonth = DateTimeComparator.getInstance(DateTimeFieldType.dayOfMonth(), DateTimeFieldType.monthOfYear());
+        cDayOfYear = DateTimeComparator.getInstance(DateTimeFieldType.dayOfYear(), DateTimeFieldType.year());
+        cWeekOfWeekyear = DateTimeComparator.getInstance(DateTimeFieldType.weekOfWeekyear(), DateTimeFieldType.weekyear());
+        cWeekyear = DateTimeComparator.getInstance(DateTimeFieldType.weekyear());
+        cMonth = DateTimeComparator.getInstance(DateTimeFieldType.monthOfYear(), DateTimeFieldType.year());
+        cYear = DateTimeComparator.getInstance(DateTimeFieldType.year());
+        cDate = DateTimeComparator.getDateOnlyInstance();
+        cTime = DateTimeComparator.getTimeOnlyInstance();
+    }
+
+    /**
+     * Junit <code>tearDown()</code> method.
+     */
+    protected void tearDown() /* throws Exception */ {
+        // super.tearDown();
+        aDateTime = null;
+        bDateTime = null;
+        //
+        cMillis = null;
+        cSecond = null;
+        cMinute = null;
+        cHour = null;
+        cDayOfWeek = null;
+        cDayOfMonth = null;
+        cDayOfYear = null;
+        cWeekOfWeekyear = null;
+        cWeekyear = null;
+        cMonth = null;
+        cYear = null;
+        cDate = null;
+        cTime = null;
+    }
+
+    
+
+    /*
+     * 'List' processing tests follow.
+     */
+
+     /**
+      * Test sorting with second comparator.
+      */
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        String[] dtStrs = {
+            fixture._input[0],
+            fixture._input[1],
+            fixture._input[2],
+            fixture._input[3],
+            fixture._input[4],
+            fixture._input[5],
+            fixture._input[6]
+        };
+        //
+        List sl = loadAList( dtStrs );
+        boolean isSorted1 = isListSorted( sl );
+        Collections.sort( sl, cSecond );
+        boolean isSorted2 = isListSorted( sl );
+        assertEquals(fixture._input[7], !isSorted1, isSorted2);
+    } // end of testListSecond
+
+     // private convenience methods
+    //-----------------------------------------------------------------------
+    /**
+     * Creates a date to test with.
+     */
+    private DateTime getADate(String s) {
+        DateTime retDT = null;
+        try {
+            retDT = new DateTime(s, DateTimeZone.UTC);
+        } catch (IllegalArgumentException pe) {
+            pe.printStackTrace();
+        }
+        return retDT;
+    }
+
+    /**
+     * Load a string array.
+     */
+    private List loadAList(String[] someStrs) {
+        List newList = new ArrayList();
+        try {
+            for (int i = 0; i < someStrs.length; ++i) {
+                newList.add(new DateTime(someStrs[i], DateTimeZone.UTC));
+            } // end of the for
+        } catch (IllegalArgumentException pe) {
+            pe.printStackTrace();
+        }
+        return newList;
+    }
+
+    /**
+     * Check if the list is sorted.
+     */
+    private boolean isListSorted(List tl) {
+        // tl must be populated with DateTime objects.
+        DateTime lhDT = (DateTime)tl.get(0);
+        DateTime rhDT = null;
+        Long lhVal = new Long( lhDT.getMillis() );
+        Long rhVal = null;
+        for (int i = 1; i < tl.size(); ++i) {
+            rhDT = (DateTime)tl.get(i);
+            rhVal = new Long( rhDT.getMillis() );
+            if ( lhVal.compareTo( rhVal) > 0 ) return false;
+            //
+            lhVal = rhVal;  // swap for next iteration
+            lhDT = rhDT;    // swap for next iteration
+        }
+        return true;
+    }
+
+	private static String[] INPUT1 = { "1999-02-01T00:00:10", "1999-02-01T00:00:30", "1999-02-01T00:00:25",
+			"1999-02-01T00:00:18", "1999-02-01T00:00:01", "1999-02-01T00:00:59", "1999-02-01T00:00:22", "ListSecond" };
+
+	private static String[] EXPECTED1 = null;
+
+	private static String[] INPUT2 = { "1999-02-01T00:10:00", "1999-02-01T00:30:00", "1999-02-01T00:25:00",
+			"1999-02-01T00:18:00", "1999-02-01T00:01:00", "1999-02-01T00:59:00", "1999-02-01T00:22:00", "ListMinute" };
+
+	private static String[] EXPECTED2 = null;
+
+	private static String[] INPUT3 = { "1999-02-01T10:00:00", "1999-02-01T23:00:00", "1999-02-01T01:00:00",
+			"1999-02-01T15:00:00", "1999-02-01T05:00:00", "1999-02-01T20:00:00", "1999-02-01T17:00:00", "ListHour" };
+
+	private static String[] EXPECTED3 = null;
+
+	private static String[] INPUT4 = { "2002-04-21T10:00:00", "2002-04-16T10:00:00", "2002-04-15T10:00:00",
+			"2002-04-17T10:00:00", "2002-04-19T10:00:00", "2002-04-18T10:00:00", "2002-04-20T10:00:00", "ListDOW" };
+
+	private static String[] EXPECTED4 = null;
+
+	private static String[] INPUT5 = { "2002-04-20T10:00:00", "2002-04-16T10:00:00", "2002-04-15T10:00:00",
+			"2002-04-17T10:00:00", "2002-04-19T10:00:00", "2002-04-18T10:00:00", "2002-04-14T10:00:00", "ListDOM" };
+
+	private static String[] EXPECTED5 = null;
+
+	private static String[] INPUT6 = { "2002-04-20T10:00:00", "2002-01-16T10:00:00", "2002-12-31T10:00:00",
+			"2002-09-14T10:00:00", "2002-09-19T10:00:00", "2002-02-14T10:00:00", "2002-10-30T10:00:00", "ListDOY" };
+
+	private static String[] EXPECTED6 = null;
+
+	private static String[] INPUT7 = { "2002-04-01T10:00:00", "2002-01-01T10:00:00", "2002-12-01T10:00:00",
+			"2002-09-01T10:00:00", "2002-09-01T10:00:00", "2002-02-01T10:00:00", "2002-10-01T10:00:00", "ListWOW" };
+
+	private static String[] EXPECTED7 = null;
+
+	private static String[] INPUT8 = { "2002-04-01T10:00:00", "2002-01-01T10:00:00", "2002-12-01T10:00:00",
+			"2002-09-01T10:00:00", "2002-09-01T10:00:00", "2002-02-01T10:00:00", "2002-10-01T10:00:00", "ListMonth" };
+
+	private static String[] EXPECTED8 = null;
+
+	private static String[] INPUT9 = { "1999-02-01T00:00:00", "1998-02-01T00:00:00", "2525-02-01T00:00:00",
+			"1776-02-01T00:00:00", "1863-02-01T00:00:00", "1066-02-01T00:00:00", "2100-02-01T00:00:00", "ListYear" };
+
+	private static String[] EXPECTED9 = null;
+
+	private static String[] INPUT10 = { "1999-02-01T00:00:00", "1998-10-03T00:00:00", "2525-05-20T00:00:00",
+			"1776-12-25T00:00:00", "1863-01-31T00:00:00", "1066-09-22T00:00:00", "2100-07-04T00:00:00", "ListDate" };
+
+	private static String[] EXPECTED10 = null;
+
+	private static String[] INPUT11 = { "1999-02-01T01:02:05", "1999-02-01T22:22:22", "1999-02-01T05:30:45",
+			"1999-02-01T09:17:59", "1999-02-01T09:17:58", "1999-02-01T15:30:00", "1999-02-01T17:00:44", "ListTime" };
+
+	private static String[] EXPECTED11 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5),new Fixture(INPUT6,EXPECTED6),new Fixture(INPUT7,EXPECTED7),new Fixture(INPUT8,EXPECTED8),new Fixture(INPUT9,EXPECTED9),new Fixture(INPUT10,EXPECTED10),new Fixture(INPUT11,EXPECTED11)};
+
+	public static class Fixture {
+		private String[] _input;
+		private Object _expected;
+
+		public Fixture(String[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

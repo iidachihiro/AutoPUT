@@ -1,0 +1,87 @@
+/*
+ *  Copyright 2001-2011 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time.format;
+
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+
+import junit.framework.AssertionFailedError;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeFieldType;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDateTime;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+/**
+ * This class is a Junit unit test for DateTimeFormatterBuilder.
+ *
+ * @author Stephen Colebourne
+ * @author Brian S O'Neill
+ */
+public @RunWith(Parameterized.class) class TestDateTimeFormatterBuilder extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestDateTimeFormatterBuilder.class);
+    }
+
+    protected void setUp() throws Exception {
+    }
+
+    protected void tearDown() throws Exception {
+    }
+
+    public void test_appendTimeZoneOffset_print_min1max1() throws IOException {
+        DateTimeFormatter f = new DateTimeFormatterBuilder().appendTimeZoneOffset("Z", true, _input[0], _input[1]).toFormatter();
+        assertPrint(_input[2], f, new DateTime(2007, 3, 4, 0, 0, 0, OFFSET_0200));
+        assertPrint(_input[3], f, new DateTime(2007, 3, 4, 0, 0, 0, OFFSET_023012));
+    }
+
+    private static void assertPrint(String expected, DateTimeFormatter f, DateTime dt) {
+        assertEquals(expected, f.print(dt));
+        StringWriter out = new StringWriter();
+        try {
+            f.printTo(out, dt);
+        } catch (IOException ex) {
+            AssertionFailedError failure = new AssertionFailedError();
+            failure.initCause(ex);
+            throw failure;
+        }
+        assertEquals(expected, out.toString());
+    }
+
+	@Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{1,1,"+02","+02"},{}},{{1,2,"+02","+02:30"},{}},{{1,3,"+02","+02:30:12"},{}},{{2,2,"+02:00","+02:30"},{}},{{2,3,"+02:00","+02:30:12"},{}},{{3,3,"+02:00:00","+02:30:12"},{}}});}
+
+	private Object[] _input;
+	private Object _expected;
+
+	public AutoPUT(Object[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

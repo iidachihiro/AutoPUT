@@ -1,0 +1,255 @@
+package org.jdom2.test.cases.output;
+
+/* Please run replic.pl on me ! */
+/**
+ * Please put a description of your test here.
+ * 
+ * @author unascribed
+ * @version 0.1
+ */
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.ByteArrayOutputStream;
+import java.io.CharArrayWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.lang.reflect.Method;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.transform.Result;
+
+import org.junit.Test;
+import org.junit.runner.JUnitCore;
+
+import org.jdom2.CDATA;
+import org.jdom2.Comment;
+import org.jdom2.Content;
+import org.jdom2.DocType;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.EntityRef;
+import org.jdom2.IllegalDataException;
+import org.jdom2.JDOMException;
+import org.jdom2.ProcessingInstruction;
+import org.jdom2.Text;
+import org.jdom2.UncheckedJDOMFactory;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.Format;
+import org.jdom2.output.Format.TextMode;
+import org.jdom2.output.support.AbstractXMLOutputProcessor;
+import org.jdom2.output.support.XMLOutputProcessor;
+import org.jdom2.output.XMLOutputter;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+@SuppressWarnings("javadoc")
+public final @RunWith(Theories.class) class AutoPutTest extends AbstractTestOutputter {
+
+    /**
+     * The main method runs all the tests in the text ui
+     */
+    public static void main (String args[]) 
+     {
+        JUnitCore.runClasses(TestXMLOutputter.class);
+    }
+
+    public TestXMLOutputter() {
+		super(true, true, false, false, false);
+	}
+    
+    private XMLOutputter getOutputter(Format format) {
+    	return new XMLOutputter(format);
+    }
+
+    @Override
+	public String outputDocumentAsString(Format format, Document doc) {
+		return getOutputter(format).outputString(doc);
+	}
+
+	@Override
+	public String outputDocTypeAsString(Format format, DocType doctype) {
+		return getOutputter(format).outputString(doctype);
+	}
+
+	@Override
+	public String outputElementAsString(Format format, Element element) {
+		return getOutputter(format).outputString(element);
+	}
+
+	@Override
+	public String outputListAsString(Format format, List<? extends Content> list) {
+		return getOutputter(format).outputString(list);
+	}
+
+	@Override
+	public String outputCDataAsString(Format format, CDATA cdata) {
+		return getOutputter(format).outputString(cdata);
+	}
+
+	@Override
+	public String outputTextAsString(Format format, Text text) {
+		return getOutputter(format).outputString(text);
+	}
+
+	@Override
+	public String outputCommentAsString(Format format, Comment comment) {
+		return getOutputter(format).outputString(comment);
+	}
+
+	@Override
+	public String outputPIAsString(Format format, ProcessingInstruction pi) {
+		return getOutputter(format).outputString(pi);
+	}
+
+	@Override
+	public String outputEntityRefAsString(Format format, EntityRef entity) {
+		return getOutputter(format).outputString(entity);
+	}
+
+	@Override
+	public String outputElementContentString(Format format, Element element) {
+		return getOutputter(format).outputElementContentString(element);
+	}
+
+
+
+
+	@Theory
+	public void autoPutTest(Fixture fixture) throws JDOMException, IOException {
+      SAXBuilder builder = new SAXBuilder();
+      builder.setExpandEntities(true);
+      Document doc = builder.build(new StringReader(fixture._input[0]));
+      Format format = Format.getCompactFormat().setEncoding(fixture._input[1]);
+      XMLOutputter outputter = new XMLOutputter(format);
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      outputter.output(doc, baos);
+      String xml = baos.toString();
+      assertEquals(fixture._input[2] + format.getLineSeparator() +
+                   fixture._input[3] + format.getLineSeparator(), xml);
+    }
+
+    /**
+	 * The following method will run the output data through each of the three base
+	 * formatters, raw, compact, and pretty. It will also run each of those
+	 * formatters as the outputString(content), output(content, OutputStream)
+	 * and output(content, Writer).
+	 * 
+	 * The expectation is that the results of the three output forms (String,
+	 * OutputStream, and Writer) will be identical, and that it will match
+	 * the expected value for the appropriate formatter.
+	 * 
+	 * @param content The content to output
+	 * @param methodprefix What the methods are called
+	 * @param clazz The class used as the parameter for the methods.
+	 * @param setup A callback mechanism to modify the formatters
+	 * @param raw  What we expect the content to look like with the RAW format
+	 * @param compact What we expect the content to look like with the COMPACT format
+	 * @param pretty What we expect the content to look like with the PRETTY format
+	 * @param trimfw What we expect the content to look like with the TRIM_FULL_WHITE format
+	 */
+	@Override
+	protected void checkOutput(Object content, String methodprefix, Class<?> clazz, 
+			FormatSetup setup, String raw, String compact, String pretty, String tso, String trimfw) {
+		
+		super.checkOutput(content, methodprefix, clazz, setup, raw, compact, pretty, tso, trimfw);
+		
+		Method mstring = getMethod(methodprefix + "String", clazz);
+		Method mstream = getMethod(methodprefix, clazz, OutputStream.class);
+		Method mwriter = getMethod(methodprefix, clazz, Writer.class);
+		
+		String[] descn   = new String[] {"Raw", "Compact", "Pretty", "TrimFullWhite"};
+		Format ftrimfw = Format.getPrettyFormat();
+		ftrimfw.setTextMode(TextMode.TRIM_FULL_WHITE);
+		Format[] formats = new Format[] {
+				getFormat(setup, Format.getRawFormat()), 
+				getFormat(setup, Format.getCompactFormat()),
+				getFormat(setup, Format.getPrettyFormat()),
+				getFormat(setup, ftrimfw)};
+		String[] result  = new String[] {expect(raw), expect(compact), expect(pretty), expect(trimfw)};
+		
+		for (int i = 0; i < 4; i++) {
+			XMLOutputter out = new XMLOutputter(formats[i]);
+			ByteArrayOutputStream baos = new ByteArrayOutputStream(result[i].length() * 2);
+			CharArrayWriter caw = new CharArrayWriter(result[i].length() + 2);
+			try {
+				if (mstring != null) {
+					String rstring = (String) mstring.invoke(out, content);
+					assertEquals("outputString Format " + descn[i], result[i], rstring);
+				}
+				if (mstream != null) {
+					mstream.invoke(out, content, baos);
+					String rstream = new String(baos.toByteArray());
+					assertEquals("output OutputStream Format " + descn[i], result[i], rstream);
+				}
+				if (mwriter != null) {
+					mwriter.invoke(out, content, caw);
+					String rwriter = String.valueOf(caw.toCharArray());
+					assertEquals("output Writer Format " + descn[i], result[i], rwriter);
+				}
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+				fail("Failed to process " + descn[i] + " on content " + clazz + ": " + e.getMessage());
+			}
+		}
+	}
+	
+	private Method getMethod(String name, Class<?>...classes) {
+		try {
+			return XMLOutputter.class.getMethod(name, classes);
+		} catch (Exception e) {
+			// ignore.
+			System.out.println("Can't find " + name + " on " + this.getClass().getName() + ": " + e.getMessage());
+		}
+		return null;
+	}
+
+	private static String[] INPUT1 = { "<?xml version=\"1.0\"?><root>&#x10000; &#65536;</root>", "ISO-8859-1",
+			"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>", "<root>&#x10000; &#x10000;</root>" };
+
+	private static String[] EXPECTED1 = null;
+
+	private static String[] INPUT2 = { "<?xml version=\"1.0\"?><root att=\"&#x10000; &#x10000;\" />", "ISO-8859-1",
+			"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>", "<root att=\"&#x10000; &#x10000;\" />" };
+
+	private static String[] EXPECTED2 = null;
+
+	private static String[] INPUT3 = { "<?xml version=\"1.0\"?><root att=\"&#x10000; &#65536;\" />", "ISO-8859-1",
+			"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>", "<root att=\"&#x10000; &#x10000;\" />" };
+
+	private static String[] EXPECTED3 = null;
+
+	private static String[] INPUT4 = { "<?xml version=\"1.0\"?><root>\uD800\uDC00</root>", "ISO-8859-1",
+			"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>", "<root>&#x10000;</root>" };
+
+	private static String[] EXPECTED4 = null;
+
+	private static String[] INPUT5 = { "<?xml version=\"1.0\"?><root>\uD800\uDC00</root>", "UTF-8",
+			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "<root>&#x10000;</root>" };
+
+	private static String[] EXPECTED5 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5)};
+
+	public static class Fixture {
+		private String[] _input;
+		private Object _expected;
+
+		public Fixture(String[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+    
+}

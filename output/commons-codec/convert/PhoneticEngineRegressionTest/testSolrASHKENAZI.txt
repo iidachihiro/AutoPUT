@@ -1,0 +1,174 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.codec.language.bm;
+
+import static org.junit.Assert.*;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.TreeMap;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * Tests PhoneticEngine and Languages.LanguageSet in ways very similar to code found in solr-3.6.0.
+ *
+ * @since 1.7
+ */
+public @RunWith(Theories.class) class AutoPutTest {
+
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        Map<String, String> args;
+
+        // concat is true, ruleType is EXACT
+        args = new TreeMap<String, String>();
+        args.put("nameType", fixture._input[0]);
+        assertEquals(encode(args, true, "Angelo"), fixture._input[1]);
+        args.put("ruleType", "EXACT");
+        assertEquals(encode(args, true, "Angelo"), fixture._input[2]);
+        assertEquals(encode(args, true, "D'Angelo"), fixture._input[3]);
+        args.put("languageSet", "italian,greek,spanish");
+        assertEquals(encode(args, true, "Angelo"), fixture._input[4]);
+        assertEquals(encode(args, true, "1234"), "");
+
+        // concat is false, ruleType is EXACT
+        args = new TreeMap<String, String>();
+        args.put("nameType", fixture._input[5]);
+        assertEquals(encode(args, false, "Angelo"), fixture._input[6]);
+        args.put("ruleType", "EXACT");
+        assertEquals(encode(args, false, "Angelo"), fixture._input[7]);
+        assertEquals(encode(args, false, "D'Angelo"), fixture._input[8]);
+        args.put("languageSet", "italian,greek,spanish");
+        assertEquals(encode(args, false, "Angelo"), fixture._input[9]);
+        assertEquals(encode(args, false, "1234"), "");
+
+        // concat is true, ruleType is APPROX
+        args = new TreeMap<String, String>();
+        args.put("nameType", fixture._input[10]);
+        assertEquals(encode(args, true, "Angelo"), fixture._input[11]);
+        args.put("ruleType", "APPROX");
+        assertEquals(encode(args, true, "Angelo"), fixture._input[12]);
+        assertEquals(encode(args, true, "D'Angelo"), fixture._input[13]);
+        args.put("languageSet", "italian,greek,spanish");
+        assertEquals(encode(args, true, "Angelo"), fixture._input[14]);
+        assertEquals(encode(args, true, "1234"), "");
+
+        // concat is false, ruleType is APPROX
+        args = new TreeMap<String, String>();
+        args.put("nameType", fixture._input[15]);
+        assertEquals(encode(args, false, "Angelo"), fixture._input[16]);
+        args.put("ruleType", "APPROX");
+        assertEquals(encode(args, false, "Angelo"), fixture._input[17]);
+        assertEquals(encode(args, false, "D'Angelo"), fixture._input[18]);
+        args.put("languageSet", "italian,greek,spanish");
+        assertEquals(encode(args, false, "Angelo"), fixture._input[19]);
+        assertEquals(encode(args, false, "1234"), "");
+    }
+
+    /**
+     * This code is similar in style to code found in Solr:
+     * solr/core/src/java/org/apache/solr/analysis/BeiderMorseFilterFactory.java
+     *
+     * Making a JUnit test out of it to protect Solr from possible future
+     * regressions in Commons-Codec.
+     */
+    private static String encode(final Map<String, String> args, final boolean concat, final String input) {
+        Languages.LanguageSet languageSet;
+        PhoneticEngine engine;
+
+        // PhoneticEngine = NameType + RuleType + concat
+        // we use common-codec's defaults: GENERIC + APPROX + true
+        final String nameTypeArg = args.get("nameType");
+        final NameType nameType = (nameTypeArg == null) ? NameType.GENERIC : NameType.valueOf(nameTypeArg);
+
+        final String ruleTypeArg = args.get("ruleType");
+        final RuleType ruleType = (ruleTypeArg == null) ? RuleType.APPROX : RuleType.valueOf(ruleTypeArg);
+
+        engine = new PhoneticEngine(nameType, ruleType, concat);
+
+        // LanguageSet: defaults to automagic, otherwise a comma-separated list.
+        final String languageSetArg = args.get("languageSet");
+        if (languageSetArg == null || languageSetArg.equals("auto")) {
+            languageSet = null;
+        } else {
+            languageSet = Languages.LanguageSet.from(new HashSet<String>(Arrays.asList(languageSetArg.split(","))));
+        }
+
+        /*
+            org/apache/lucene/analysis/phonetic/BeiderMorseFilter.java (lines 96-98) does this:
+
+            encoded = (languages == null)
+                ? engine.encode(termAtt.toString())
+                : engine.encode(termAtt.toString(), languages);
+
+            Hence our approach, below:
+        */
+        if (languageSet == null) {
+            return engine.encode(input);
+        }
+        return engine.encode(input, languageSet);
+    }
+
+	private static String[] INPUT1 = { "ASHKENAZI",
+			"YngYlo|Yngilo|angYlo|angilo|anilo|anxilo|anzilo|ongYlo|ongilo|onilo|onxilo|onzilo",
+			"andZelo|angelo|anhelo|anxelo", "dandZelo|dangelo|danhelo|danxelo", "angelo|anxelo", "ASHKENAZI",
+			"YngYlo|Yngilo|angYlo|angilo|anilo|anxilo|anzilo|ongYlo|ongilo|onilo|onxilo|onzilo",
+			"andZelo|angelo|anhelo|anxelo", "dandZelo|dangelo|danhelo|danxelo", "angelo|anxelo", "ASHKENAZI",
+			"YngYlo|Yngilo|angYlo|angilo|anilo|anxilo|anzilo|ongYlo|ongilo|onilo|onxilo|onzilo",
+			"YngYlo|Yngilo|angYlo|angilo|anilo|anxilo|anzilo|ongYlo|ongilo|onilo|onxilo|onzilo",
+			"dYngYlo|dYngilo|dangYlo|dangilo|danilo|danxilo|danzilo|dongYlo|dongilo|donilo|donxilo|donzilo",
+			"angilo|anxilo|ongilo|onxilo", "ASHKENAZI",
+			"YngYlo|Yngilo|angYlo|angilo|anilo|anxilo|anzilo|ongYlo|ongilo|onilo|onxilo|onzilo",
+			"YngYlo|Yngilo|angYlo|angilo|anilo|anxilo|anzilo|ongYlo|ongilo|onilo|onxilo|onzilo",
+			"dYngYlo|dYngilo|dangYlo|dangilo|danilo|danxilo|danzilo|dongYlo|dongilo|donilo|donxilo|donzilo",
+			"angilo|anxilo|ongilo|onxilo" };
+
+	private static String[] EXPECTED1 = null;
+
+	private static String[] INPUT2 = { "SEPHARDIC", "anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu",
+			"anZelo|andZelo|anxelo", "anZelo|andZelo|anxelo", "andZelo|anxelo", "SEPHARDIC",
+			"anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu", "anZelo|andZelo|anxelo", "danZelo|dandZelo|danxelo",
+			"andZelo|anxelo", "SEPHARDIC", "anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu",
+			"anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu",
+			"anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu",
+			"anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu", "SEPHARDIC",
+			"anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu",
+			"anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu",
+			"danhila|danhilu|danzila|danzilu|nhila|nhilu|nzila|nzilu",
+			"anhila|anhilu|anzila|anzilu|nhila|nhilu|nzila|nzilu" };
+
+	private static String[] EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private String[] _input;
+		private Object _expected;
+
+		public Fixture(String[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

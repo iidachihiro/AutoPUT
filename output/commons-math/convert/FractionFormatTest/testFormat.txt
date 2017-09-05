@@ -1,0 +1,84 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.fraction;
+
+import java.text.NumberFormat;
+import java.util.Locale;
+
+import org.apache.commons.math4.exception.MathParseException;
+import org.apache.commons.math4.fraction.Fraction;
+import org.apache.commons.math4.fraction.FractionFormat;
+import org.apache.commons.math4.fraction.ProperFractionFormat;
+import org.apache.commons.math4.util.FastMath;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+
+public @RunWith(Theories.class) class AutoPutTest {
+
+    protected Locale getLocale() {
+        return Locale.getDefault();
+    }
+
+    @Before
+    public void setUp() {
+        properFormat = FractionFormat.getProperInstance(getLocale());
+        improperFormat = FractionFormat.getImproperInstance(getLocale());
+    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        Fraction c = new Fraction(fixture._input[0], fixture._input[1]);
+        String expected = _expected.fixture;
+
+        String actual = properFormat.format(c);
+        Assert.assertEquals(expected, actual);
+
+        actual = improperFormat.format(c);
+        Assert.assertEquals(expected, actual);
+    }
+
+    private static double[] INPUT1 = { 1, 2 };
+
+	private static double[] EXPECTED1 = "1 / 2";
+
+	private static double[] INPUT2 = { -1, 2 };
+
+	private static double[] EXPECTED2 = "-1 / 2";
+
+	private static double[] INPUT3 = { 0, 1 };
+
+	private static double[] EXPECTED3 = "0 / 1";
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3)};
+
+	public static class Fixture {
+		private double[] _input;
+		private String _expected;
+
+		public Fixture(double[] _input, String _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

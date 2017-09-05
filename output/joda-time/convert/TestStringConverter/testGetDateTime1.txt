@@ -1,0 +1,110 @@
+/*
+ *  Copyright 2001-2005 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time.convert;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Locale;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.Chronology;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.MutableInterval;
+import org.joda.time.MutablePeriod;
+import org.joda.time.PeriodType;
+import org.joda.time.TimeOfDay;
+import org.joda.time.chrono.BuddhistChronology;
+import org.joda.time.chrono.ISOChronology;
+import org.joda.time.chrono.JulianChronology;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * This class is a Junit unit test for StringConverter.
+ *
+ * @author Stephen Colebourne
+ */
+public @RunWith(Theories.class) class AutoPutTest extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestStringConverter.class);
+    }
+
+    public TestStringConverter(String name) {
+        super(name);
+    }
+
+    protected void setUp() throws Exception {
+        zone = DateTimeZone.getDefault();
+        locale = Locale.getDefault();
+        DateTimeZone.setDefault(LONDON);
+        Locale.setDefault(Locale.UK);
+        
+        JULIAN = JulianChronology.getInstance();
+        ISO = ISOChronology.getInstance();
+    }
+
+    protected void tearDown() throws Exception {
+        DateTimeZone.setDefault(zone);
+        Locale.setDefault(locale);
+        zone = null;
+    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture) throws Exception {
+        DateTime test = new DateTime(_input.fixture);
+        assertEquals(2004, test.getYear());
+        assertEquals(6, test.getMonthOfYear());
+        assertEquals(9, test.getDayOfMonth());
+        assertEquals(12, test.getHourOfDay());
+        assertEquals(24, test.getMinuteOfHour());
+        assertEquals(48, test.getSecondOfMinute());
+        assertEquals(501, test.getMillisOfSecond());
+        assertEquals(LONDON, test.getZone());
+    }
+
+    private static String INPUT1 = "2004-06-09T12:24:48.501+01:00";
+
+	private static String EXPECTED1 = null;
+
+	private static String INPUT2 = "2004-06-09T12:24:48.501";
+
+	private static String EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private String _input;
+		private Object _expected;
+
+		public Fixture(String _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

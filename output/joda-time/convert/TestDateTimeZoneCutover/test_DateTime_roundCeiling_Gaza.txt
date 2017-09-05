@@ -1,0 +1,155 @@
+/*
+ *  Copyright 2001-2013 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.chrono.GregorianChronology;
+import org.joda.time.tz.DateTimeZoneBuilder;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * This class is a JUnit test for DateTimeZone.
+ *
+ * @author Stephen Colebourne
+ */
+public @RunWith(Theories.class) class AutoPutTest extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestDateTimeZoneCutover.class);
+    }
+
+    public TestDateTimeZoneCutover(String name) {
+        super(name);
+    }
+
+    protected void setUp() throws Exception {
+    }
+
+    protected void tearDown() throws Exception {
+    }
+
+    //-----------------------------------------------------------------------
+    //------------------------ Bug [1710316] --------------------------------
+    //-----------------------------------------------------------------------
+    // The behaviour of getOffsetFromLocal is defined in its javadoc
+    // However, this definition doesn't work for all DateTimeField operations
+    
+    private void doTest_getOffsetFromLocal_Gaza(int days, int hour, int min, String expected) {
+        DateTime dt = new DateTime(2007, 4, 1, hour, min, 0, 0, DateTimeZone.UTC).plusDays(days);
+        int offset = MOCK_GAZA.getOffsetFromLocal(dt.getMillis());
+        DateTime res = new DateTime(dt.getMillis() - offset, MOCK_GAZA);
+        assertEquals(res.toString(), expected, res.toString());
+    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        DateTime dt = new DateTime(2007, fixture._input[0], fixture._input[1], fixture._input[2], fixture._input[3], 0, 0, MOCK_GAZA);
+        assertEquals(fixture._expected[0], dt.toString());
+        DateTime rounded = dt.dayOfMonth().roundCeilingCopy();
+        assertEquals(fixture._expected[1], rounded.toString());
+    }
+
+    private void doTest_getOffsetFromLocal_Turk(int days, int hour, int min, String expected, int expOffset) {
+        DateTime dt = new DateTime(2007, 4, 1, hour, min, 0, 0, DateTimeZone.UTC).plusDays(days);
+        int offset = MOCK_TURK.getOffsetFromLocal(dt.getMillis());
+        assertEquals(expOffset * 3600000L, offset);
+        DateTime res = new DateTime(dt.getMillis() - offset, MOCK_TURK);
+        assertEquals(res.toString(), expected, res.toString());
+    }
+
+    
+
+    //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+
+    
+
+//    public void test_toDateMidnight_SaoPaolo() {
+//        // RFE: 1684259
+//        DateTimeZone zone = DateTimeZone.forID("America/Sao_Paulo");
+//        LocalDate baseDate = new LocalDate(2006, 11, 5);
+//        DateMidnight dm = baseDate.toDateMidnight(zone);
+//        assertEquals("2006-11-05T00:00:00.000-03:00", dm.toString());
+//        DateTime dt = baseDate.toDateTimeAtMidnight(zone);
+//        assertEquals("2006-11-05T00:00:00.000-03:00", dt.toString());
+//    }
+
+    //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+    //-----------------------------------------------------------------------
+    private void doTest_getOffsetFromLocal(int month, int day, int hour, int min, String expected, int expOffset, DateTimeZone zone) {
+        doTest_getOffsetFromLocal(2007, month, day, hour, min, 0, 0, expected, expOffset, zone);
+    }
+
+    private void doTest_getOffsetFromLocal(int month, int day, int hour, int min, int sec, int milli, String expected, int expOffset, DateTimeZone zone) {
+        doTest_getOffsetFromLocal(2007, month, day, hour, min, sec, milli, expected, expOffset, zone);
+    }
+
+    private void doTest_getOffsetFromLocal(int year, int month, int day, int hour, int min, String expected, int expOffset, DateTimeZone zone) {
+        doTest_getOffsetFromLocal(year, month, day, hour, min, 0, 0, expected, expOffset, zone);
+    }
+
+    private void doTest_getOffsetFromLocal(int year, int month, int day, int hour, int min, int sec, int milli, String expected, int expOffset, DateTimeZone zone) {
+        DateTime dt = new DateTime(year, month, day, hour, min, sec, milli, DateTimeZone.UTC);
+        int offset = zone.getOffsetFromLocal(dt.getMillis());
+        assertEquals(expOffset * 3600000L, offset);
+        DateTime res = new DateTime(dt.getMillis() - offset, zone);
+        assertEquals(res.toString(), expected, res.toString());
+    }
+
+	private static double[] INPUT1 = { 3, 31, 20, 0 };
+
+	private static double[] EXPECTED1 = { "2007-03-31T20:00:00.000+02:00", "2007-04-01T01:00:00.000+03:00" };
+
+	private static double[] INPUT2 = { 3, 31, 20, 0 };
+
+	private static double[] EXPECTED2 = { "2007-03-31T20:00:00.000-05:00", "2007-04-01T01:00:00.000-04:00" };
+
+	private static double[] INPUT3 = { 3, 11, 1, 30 };
+
+	private static double[] EXPECTED3 = { "2007-03-11T01:30:00.000-05:00", "2007-03-12T00:00:00.000-04:00" };
+
+	private static double[] INPUT4 = { 3, 11, 3, 30 };
+
+	private static double[] EXPECTED4 = { "2007-03-11T03:30:00.000-04:00", "2007-03-12T00:00:00.000-04:00" };
+
+	private static double[] INPUT5 = { 11, 4, 1, 30 };
+
+	private static double[] EXPECTED5 = { "2007-11-04T01:30:00.000-04:00", "2007-11-05T00:00:00.000-05:00" };
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5)};
+
+	public static class Fixture {
+		private double[] _input;
+		private String[] _expected;
+
+		public Fixture(double[] _input, String[] _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

@@ -1,0 +1,75 @@
+/*
+ *  Copyright 2001-2005 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time.convert;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.DateMidnight;
+import org.joda.time.DateTime;
+import org.joda.time.ReadWritableDateTime;
+import org.joda.time.ReadWritableInstant;
+import org.joda.time.ReadableDateTime;
+import org.joda.time.ReadableInstant;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+/**
+ * This class is a JUnit test for ConverterSet.
+ * Mostly for coverage.
+ *
+ * @author Stephen Colebourne
+ */
+public @RunWith(Parameterized.class) class TestConverterSet extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestConverterSet.class);
+    }
+
+    //-----------------------------------------------------------------------
+    public void testRemoveBadIndex1() {
+        Converter[] array = new Converter[] {
+            c1, c2, c3, c4,
+        };
+        ConverterSet set = new ConverterSet(array);
+        try {
+            set.remove(_input, null);
+            fail();
+        } catch (IndexOutOfBoundsException ex) {}
+        assertEquals(4, set.size());
+    }
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{200,{}},{-1,{}}});}
+
+	private double _input;
+	private Object _expected;
+
+	public AutoPUT(double _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

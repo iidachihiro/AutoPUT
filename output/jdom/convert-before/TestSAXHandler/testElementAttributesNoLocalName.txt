@@ -1,0 +1,284 @@
+package org.jdom2.test.cases.input;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.NoSuchElementException;
+
+import javax.xml.XMLConstants;
+
+import org.junit.Test;
+import org.xml.sax.SAXException;
+import org.xml.sax.ext.Attributes2;
+import org.xml.sax.helpers.LocatorImpl;
+
+import org.jdom2.Attribute;
+import org.jdom2.AttributeType;
+import org.jdom2.CDATA;
+import org.jdom2.Comment;
+import org.jdom2.DefaultJDOMFactory;
+import org.jdom2.DocType;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.EntityRef;
+import org.jdom2.JDOMFactory;
+import org.jdom2.Namespace;
+import org.jdom2.ProcessingInstruction;
+import org.jdom2.filter.ContentFilter;
+import org.jdom2.input.sax.SAXHandler;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+@SuppressWarnings("javadoc")
+public @RunWith(Parameterized.class) class TestSAXHandler {
+	
+	private static final class AttributesSingleOnly implements Attributes2 {
+
+		private final String uri, localName, qName, type, value;
+		
+		public AttributesSingleOnly(String uri, String localName, String qName, String type, String value)  {
+			this.uri = uri;
+			this.localName = localName;
+			this.qName = qName;
+			this.type = type;
+			this.value = value;
+		}
+		
+		private final boolean areEquals(Object a, Object b) {
+			if (a == null && b == null) {
+				return true;
+			}
+			if (a != null) {
+				return a.equals(b);
+			}
+			return false;
+		}
+		
+		@Override
+		public int getIndex(String puri, String plocalName) {
+			return areEquals(uri, puri) && areEquals(localName, plocalName) ?
+					0 : -1;
+		}
+
+		@Override
+		public int getIndex(String pqName) {
+			return areEquals(qName, pqName) ? 0 : -1;
+		}
+
+		@Override
+		public int getLength() {
+			return 1;
+		}
+
+		@Override
+		public String getLocalName(int index) {
+			if (index == 0) {
+				return localName;
+			}
+			throw new NoSuchElementException();
+		}
+
+		@Override
+		public String getQName(int index) {
+			if (index == 0) {
+				return qName;
+			}
+			throw new NoSuchElementException();
+		}
+
+		@Override
+		public String getType(int index) {
+			if (index == 0) {
+				return type;
+			}
+			throw new NoSuchElementException();
+		}
+
+		@Override
+		public String getType(String puri, String plocalName) {
+			return getType(getIndex(puri, plocalName));
+		}
+
+		@Override
+		public String getType(String pqName) {
+			return getType(getIndex(pqName));
+		}
+
+		@Override
+		public String getURI(int index) {
+			if (index == 0) {
+				return uri;
+			}
+			throw new NoSuchElementException();
+		}
+
+		@Override
+		public String getValue(int index) {
+			if (index == 0) {
+				return value;
+			}
+			throw new NoSuchElementException();
+		}
+
+		@Override
+		public String getValue(String puri, String plocalName) {
+			return getValue(getIndex(puri, plocalName));
+		}
+
+		@Override
+		public String getValue(String pqName) {
+			return getType(getIndex(pqName));
+		}
+
+		@Override
+		public boolean isDeclared(int index) {
+			if (index == 0) {
+				return true;
+			}
+			throw new NoSuchElementException();
+		}
+
+		@Override
+		public boolean isDeclared(String puri, String plocalName) {
+			return isDeclared(getIndex(puri, plocalName));
+		}
+
+		@Override
+		public boolean isDeclared(String pqName) {
+			return isDeclared(getIndex(pqName));
+		}
+
+		@Override
+		public boolean isSpecified(int index) {
+			if (index == 0) {
+				return true;
+			}
+			throw new NoSuchElementException();
+		}
+
+		@Override
+		public boolean isSpecified(String puri, String plocalName) {
+			return isSpecified(getIndex(puri, plocalName));
+		}
+
+		@Override
+		public boolean isSpecified(String pqName) {
+			return isSpecified(getIndex(pqName));
+		}
+
+	}
+	
+	private class MyHandler extends SAXHandler {
+		private MyHandler () {
+			super();
+		}
+		@Override
+		public void pushElement(Element element) {
+			super.pushElement(element);
+		}
+	}
+
+	private static final void assertMatches(String pattern, String value) {
+		assertTrue("Pattern for assertMatches is null", pattern != null);
+		assertTrue("Value for assertMatches is null", value != null);
+		if (!value.matches(pattern)) {
+			fail("Value '" + value + "' does not match pattern '" + pattern +".");
+		}
+	}
+	
+	private abstract class Builder {
+		public SAXHandler createHandler() {
+			return new SAXHandler();
+		}
+		
+		public abstract void build(SAXHandler handler) throws SAXException;
+	}
+
+	private static final Document checkHandlerDocument(Builder cd) {
+		try {
+			SAXHandler handler = cd.createHandler();
+			handler.startDocument();
+			cd.build(handler);
+			handler.endDocument();
+			return handler.getDocument();
+		} catch (SAXException se) {
+			se.printStackTrace();
+			fail("Failed TestSAXHandler with SAXException: " + se.getMessage());
+		}
+		return null;
+
+	}
+
+	private static final Element checkHandlerElement(Builder cd) {
+		try {
+			SAXHandler handler = cd.createHandler();
+			handler.startDocument();
+			handler.startElement("", "root", "root", EMPTYATTRIBUTES);
+			cd.build(handler);
+			handler.endElement("", "root", "root");
+			handler.endDocument();
+			return handler.getDocument().getRootElement();
+		} catch (SAXException se) {
+			se.printStackTrace();
+			fail("Failed TestSAXHandler with SAXException: " + se.getMessage());
+		}
+		return null;
+
+	}
+
+	private static final String checkHandlerDTDInternalSubset(Builder cd) {
+		try {
+			SAXHandler handler = cd.createHandler();
+			handler.startDocument();
+			handler.startDTD("root", "publicID", "systemID");
+			cd.build(handler);
+			handler.endDTD();
+			handler.endDocument();
+			return handler.getDocument().getDocType().getInternalSubset().trim(); //.replaceAll("(^\\s*<\\s*)|(\\s*>\\s*$)", "");
+		} catch (SAXException se) {
+			se.printStackTrace();
+			fail("Failed TestSAXHandler with SAXException: " + se.getMessage());
+		}
+		return null;
+
+	}
+
+	@Test
+	public void testElementAttributesNoLocalName() {
+		// no-localname, but has qname.
+		final AttributesSingleOnly atts = new AttributesSingleOnly("", _input[0], "att", _input[1], "val");
+		Element emt = checkHandlerElement(new Builder() {
+			@Override
+			public void build(SAXHandler handler) throws SAXException {
+				handler.startElement("", "child", "", atts);
+				handler.endElement("", "child", "");
+			}
+		});
+		
+		assertTrue(emt.getContentSize() == 1);
+		assertTrue(emt.getContent(0) instanceof Element);
+		Element child = (Element)emt.getContent(0);
+		assertEquals("child", child.getName());
+		assertEquals("", child.getNamespacePrefix());
+		assertEquals("", child.getNamespaceURI());
+		assertTrue(child.getAttributes().size() == 1);
+		assertEquals("val", child.getAttributeValue("att"));
+	}
+
+
+	@Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{"","CDATA"},{}},{{"att","(val1,val2)"},{}}});}
+
+	private String[] _input;
+	private Object _expected;
+
+	public AutoPUT(String[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

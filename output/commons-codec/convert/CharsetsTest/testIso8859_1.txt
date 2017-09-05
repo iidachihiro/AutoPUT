@@ -1,0 +1,77 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.codec;
+
+import java.nio.charset.Charset;
+
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * Sanity checks for {@link Charsets}.
+ *
+ * @version $Id: CharEncodingTest.java 1298985 2012-03-09 19:12:49Z ggregory $
+ */
+public @RunWith(Theories.class) class AutoPutTest {
+
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        Assert.assertEquals(_expected.fixture, _input.fixture.name());
+    }
+
+    private static Object INPUT1 = Charsets.ISO_8859_1;
+
+	private static Object EXPECTED1 = "ISO-8859-1";
+
+	private static Object INPUT2 = Charsets.US_ASCII;
+
+	private static Object EXPECTED2 = "US-ASCII";
+
+	private static Object INPUT3 = Charsets.UTF_16;
+
+	private static Object EXPECTED3 = "UTF-16";
+
+	private static Object INPUT4 = Charsets.UTF_16BE;
+
+	private static Object EXPECTED4 = "UTF-16BE";
+
+	private static Object INPUT5 = Charsets.UTF_16LE;
+
+	private static Object EXPECTED5 = "UTF-16LE";
+
+	private static Object INPUT6 = Charsets.UTF_8;
+
+	private static Object EXPECTED6 = "UTF-8";
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5),new Fixture(INPUT6,EXPECTED6)};
+
+	public static class Fixture {
+		private Object _input;
+		private String _expected;
+
+		public Fixture(Object _input, String _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

@@ -1,0 +1,105 @@
+/*
+ *  Copyright 2001-2013 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.chrono.GregorianChronology;
+import org.joda.time.chrono.ISOChronology;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * This class is a Junit unit test for YearMonthDay.
+ *
+ * @author Stephen Colebourne
+ */
+@SuppressWarnings("deprecation")
+public @RunWith(Theories.class) class AutoPutTest extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestYearMonthDay_Constructors.class);
+    }
+
+    public TestYearMonthDay_Constructors(String name) {
+        super(name);
+    }
+
+    protected void setUp() throws Exception {
+        DateTimeUtils.setCurrentMillisFixed(TEST_TIME_NOW);
+        zone = DateTimeZone.getDefault();
+        DateTimeZone.setDefault(LONDON);
+    }
+
+    protected void tearDown() throws Exception {
+        DateTimeUtils.setCurrentMillisSystem();
+        DateTimeZone.setDefault(zone);
+        zone = null;
+    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture) throws Throwable {
+        YearMonthDay test = new YearMonthDay(fixture._input[0]);
+        assertEquals(ISO_UTC, test.getChronology());
+        assertEquals(fixture._input[1], test.getYear());
+        assertEquals(fixture._input[2], test.getMonthOfYear());
+        assertEquals(fixture._input[3], test.getDayOfMonth());
+    }
+
+    private static Object[] INPUT1 = { "1972-12-03", 1972, 12, 3 };
+
+	private static Object[] EXPECTED1 = null;
+
+	private static Object[] INPUT2 = { "1972-12-03T+14:00", 1972, 12, 2 };
+
+	private static Object[] EXPECTED2 = null;
+
+	private static Object[] INPUT3 = { "1972-12-03T10:20:30.040", 1972, 12, 3 };
+
+	private static Object[] EXPECTED3 = null;
+
+	private static Object[] INPUT4 = { "1972-12-03T10:20:30.040+14:00", 1972, 12, 2 };
+
+	private static Object[] EXPECTED4 = null;
+
+	private static Object[] INPUT5 = { "10", 10, 1, 1 };
+
+	private static Object[] EXPECTED5 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5)};
+
+	public static class Fixture {
+		private Object[] _input;
+		private Object _expected;
+
+		public Fixture(Object[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

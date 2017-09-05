@@ -1,0 +1,168 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.stat.regression;
+
+import java.util.Random;
+
+import org.apache.commons.math4.exception.MathIllegalArgumentException;
+import org.apache.commons.math4.exception.OutOfRangeException;
+import org.apache.commons.rng.UniformRandomProvider;
+import org.apache.commons.rng.simple.RandomSource;
+import org.apache.commons.math4.stat.regression.ModelSpecificationException;
+import org.apache.commons.math4.stat.regression.RegressionResults;
+import org.apache.commons.math4.stat.regression.SimpleRegression;
+import org.apache.commons.math4.stat.regression.UpdatingMultipleLinearRegression;
+import org.apache.commons.math4.util.FastMath;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+
+/**
+ * Test cases for the TestStatistic class.
+ *
+ */
+
+public final @RunWith(Theories.class) class AutoPutTest {
+
+    /**
+     * Checks that adding data to a single model gives the same result
+     * as adding "parts" of the dataset to smaller models and using append
+     * to aggregate the smaller models.
+     *
+     * @param includeIntercept
+     */
+    private void check(boolean includeIntercept) {
+        final int sets = 2;
+        final UniformRandomProvider rand = RandomSource.create(RandomSource.ISAAC, 10L);// Seed can be changed
+        final SimpleRegression whole = new SimpleRegression(includeIntercept);// regression of the whole set
+        final SimpleRegression parts = new SimpleRegression(includeIntercept);// regression with parts.
+
+        for (int s = 0; s < sets; s++) {// loop through each subset of data.
+            final double coef = rand.nextDouble();
+            final SimpleRegression sub = new SimpleRegression(includeIntercept);// sub regression
+            for (int i = 0; i < 5; i++) { // loop through individual samlpes.
+                final double x = rand.nextDouble();
+                final double y = x * coef + rand.nextDouble();// some noise
+                sub.addData(x, y);
+                whole.addData(x, y);
+            }
+            parts.append(sub);
+            Assert.assertTrue(equals(parts, whole, 1E-6));
+        }
+    }
+
+    /**
+     * Returns true iff the statistics reported by model1 are all within tol of
+     * those reported by model2.
+     *
+     * @param model1 first model
+     * @param model2 second model
+     * @param tol tolerance
+     * @return true if the two models report the same regression stats
+     */
+    private boolean equals(SimpleRegression model1, SimpleRegression model2, double tol) {
+        if (model1.getN() != model2.getN()) {
+            return false;
+        }
+        if (FastMath.abs(model1.getIntercept() - model2.getIntercept()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getInterceptStdErr() - model2.getInterceptStdErr()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getMeanSquareError() - model2.getMeanSquareError()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getR() - model2.getR()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getRegressionSumSquares() - model2.getRegressionSumSquares()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getRSquare() - model2.getRSquare()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getSignificance() - model2.getSignificance()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getSlope() - model2.getSlope()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getSlopeConfidenceInterval() - model2.getSlopeConfidenceInterval()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getSlopeStdErr() - model2.getSlopeStdErr()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getSumOfCrossProducts() - model2.getSumOfCrossProducts()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getSumSquaredErrors() - model2.getSumSquaredErrors()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getTotalSumSquares() - model2.getTotalSumSquares()) > tol) {
+            return false;
+        }
+        if (FastMath.abs(model1.getXSumSquares() - model2.getXSumSquares()) > tol) {
+            return false;
+        }
+        return true;
+    }
+
+    // Test remove single observation in array
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        // Create regression with inference data then remove to test
+        SimpleRegression regression = new SimpleRegression();
+        regression.addData(infData);
+        regression.removeData(removeSingle);
+        regression.addData(removeSingle);
+        // Use the inference assertions to make sure that everything worked
+        Assert.assertEquals("slope std err", 0.011448491,
+                regression.getSlopeStdErr(), 1E-10);
+        Assert.assertEquals("std err intercept", 0.286036932,
+                regression.getInterceptStdErr(),1E-8);
+        Assert.assertEquals("significance", 4.596e-07,
+                regression.getSignificance(),1E-8);
+        Assert.assertEquals("slope conf interval half-width", 0.0270713794287,
+                regression.getSlopeConfidenceInterval(),1E-8);
+     }
+
+    private static Object INPUT1 = null;
+
+	private static Object EXPECTED1 = null;
+
+	private static Object INPUT2 = null;
+
+	private static Object EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private Object _input;
+		private Object _expected;
+
+		public Fixture(Object _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

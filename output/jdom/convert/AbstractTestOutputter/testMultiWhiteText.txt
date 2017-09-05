@@ -1,0 +1,446 @@
+package org.jdom2.test.cases.output;
+
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.Test;
+
+import org.jdom2.Attribute;
+import org.jdom2.CDATA;
+import org.jdom2.Comment;
+import org.jdom2.Content;
+import org.jdom2.DocType;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.EntityRef;
+import org.jdom2.Namespace;
+import org.jdom2.Parent;
+import org.jdom2.ProcessingInstruction;
+import org.jdom2.Text;
+import org.jdom2.output.Format;
+import org.jdom2.output.Format.TextMode;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+@SuppressWarnings("javadoc")
+public abstract @RunWith(Theories.class) class AutoPutTest {
+	
+	protected static interface FormatSetup {
+		public void setup(Format fmt);
+	}
+	
+	
+	public AbstractTestOutputter(boolean cr2xD, boolean padpreempty, boolean padpi,
+			boolean forceexpand, boolean usesrawxmlout) {
+		this.cr2xD = cr2xD;
+		this.pademptyelement = padpreempty;
+		this.forceexpand = forceexpand;
+		this.padpi = padpi;
+		this.usesrawxmlout = usesrawxmlout;
+	}
+	
+	protected final String expect(String expect) {
+		if (cr2xD) {
+			expect = expect.replaceAll("\r", "&#xD;");
+		}
+		if (forceexpand) {
+			expect = expect.replaceAll("<(\\w+(:\\w+)?)\\s*/>", "<$1></$1>");
+			expect = expect.replaceAll("<(\\w+(:\\w+)?)\\s+(.+?)\"\\s*/>", "<$1 $3\"></$1>");
+		}
+		if (padpi) {
+			expect = expect.replaceAll("(<\\?\\w+)(\\?>)", "$1 $2");
+		}
+		if (pademptyelement) {
+			//expect = expect.replaceAll("\">", "\" >");
+			//expect = expect.replaceAll("<(\\w+)>", "<$1 >");
+			expect = expect.replaceAll("<(\\w+(:\\w+)?)/>", "<$1 />");
+			expect = expect.replaceAll("<(\\w+(:\\w+)?\\s.+\")/>", "<$1 />");
+		} else {
+			//expect = expect.replaceAll("<(\\w+)\\s+>", "<$1>");
+			expect = expect.replaceAll("<(\\w+)(\\s+.+?)?\\s+/>", "<$1$2/>");
+			expect = expect.replaceAll("<(\\w+:\\w+)(\\s+.+?)?\\s+/>", "<$1$2/>");
+		}
+//		if (rawoutsideroot) {
+//			// outside the root element will be raw-formatted.
+//			StringBuilder sb = new StringBuilder(expect.length());
+//			int gotstuff = 0;
+//			boolean indoctype = false;
+//			boolean gotroot = false;
+//			int depth = 0;
+//			char[] chars = expect.toCharArray();
+//			int i = 0;
+//			while (i < chars.length && Verifier.isXMLWhitespace(chars[i])) {
+//				// skip initial whitespace.
+//				i++;
+//			}
+//			for (; i < chars.length; i++) {
+//				char c = chars[i];
+//				sb.append(c);
+//				if (!gotroot) {
+//					if (c == '<') {
+//						if (depth == 0) {
+//							if (i < chars.length - 2) {
+//								if (chars[i + 1] == '?') {
+//									// PI or XML Declaration
+//									gotstuff++;
+//								} else if (chars[i + 1] == '!') {
+//									// Comment of DOCTYPE
+//									gotstuff++;
+//									if (chars[i + 2] == 'D') {
+//										// DOCTYPE
+//										indoctype = true;
+//									}
+//								} else {
+//									// root element
+//									gotroot = true;
+//								}
+//							} else {
+//								gotroot = true;
+//							}
+//						}
+//						depth++;
+//					} else if (c == '>') {
+//						depth--;
+//						if (depth == 0) {
+//							if (indoctype) {
+//								sb.append('\n');
+//								indoctype = false;
+//							}
+//							while (i+1 < chars.length && Verifier.isXMLWhitespace(chars[i + 1])) {
+//								// skip whitespace after top-level content.
+//								i++;
+//							}
+//						}
+//					}
+//				}
+//			}
+//			while (Verifier.isXMLWhitespace(sb.charAt(sb.length() - 1))) {
+//				// eliminate trailing whitespace.
+//				sb.setLength(sb.length() - 1);
+//			}
+//			if (gotstuff > 1 || (gotroot && gotstuff > 0)) {
+//				// there is multiple content stuff, need to trim the whitespace....
+//				expect = sb.toString();
+//			}
+//		}
+		return expect;
+	}
+
+	/**
+	 * Return a string representing a {@link Document}. Uses an internal
+	 * StringWriter.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param doc
+	 *        <code>Document</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputDocumentAsString(Format format, Document doc);
+
+	/**
+	 * Return a string representing a {@link DocType}.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param doctype
+	 *        <code>DocType</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputDocTypeAsString(Format format, DocType doctype);
+
+	/**
+	 * Return a string representing an {@link Element}.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param element
+	 *        <code>Element</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputElementAsString(Format format, Element element);
+
+	/**
+	 * Return a string representing a List of {@link Content} nodes. <br>
+	 * The list is assumed to contain legal JDOM nodes. If other content is
+	 * coerced on to the list it will cause ClassCastExceptions, and null List
+	 * members will cause NullPointerException.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param list
+	 *        <code>List</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws ClassCastException
+	 *         if non-{@link Content} is forced in to the list
+	 * @throws NullPointerException
+	 *         if the List is null or contains null members.
+	 */
+	public abstract String outputListAsString(Format format, List<? extends Content> list);
+	
+	/**
+	 * Return a string representing a {@link CDATA} node.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param cdata
+	 *        <code>CDATA</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputCDataAsString(Format format, CDATA cdata);
+
+	/**
+	 * Return a string representing a {@link Text} node.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param text
+	 *        <code>Text</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputTextAsString(Format format, Text text);
+	
+	/**
+	 * Return a string representing a {@link Comment}.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param comment
+	 *        <code>Comment</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputCommentAsString(Format format, Comment comment);
+
+	/**
+	 * Return a string representing a {@link ProcessingInstruction}.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param pi
+	 *        <code>ProcessingInstruction</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputPIAsString(Format format, ProcessingInstruction pi);
+
+	/**
+	 * Return a string representing an {@link EntityRef}.
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param entity
+	 *        <code>EntityRef</code> to format.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputEntityRefAsString(Format format, EntityRef entity);
+
+	/**
+	 * This will handle printing out an <code>{@link
+	 * Element}</code>'s content only, not including its tag, and attributes.
+	 * This can be useful for printing the content of an element that contains
+	 * HTML, like "&lt;description&gt;JDOM is
+	 * &lt;b&gt;fun&gt;!&lt;/description&gt;".
+	 * <p>
+	 * <b>Warning</b>: a String is Unicode, which may not match the outputter's
+	 * specified encoding.
+	 * 
+	 * @param element
+	 *        <code>Element</code> to output.
+	 * @return the input content formatted as an XML String.
+	 * @throws NullPointerException
+	 *         if the specified content is null.
+	 */
+	public abstract String outputElementContentString(Format format, Element element);
+
+	static {
+		fraw.setLineSeparator("\n");
+		frawfp.setLineSeparator("\n");
+		fcompact.setLineSeparator("\n");
+		fpretty.setLineSeparator("\n");
+		ftso.setLineSeparator("\n");
+		ftso.setSpecifiedAttributesOnly(true);
+		ftfw.setLineSeparator("\n");
+		ftfw.setTextMode(TextMode.TRIM_FULL_WHITE);
+	}
+	
+
+	@Theory
+	public void autoPutTest(Fixture fixture) {
+		Element root = new Element("root");
+		root.addContent(new CDATA(" "));
+		root.addContent(new Text(" "));
+		root.addContent(new Text("    "));
+		root.addContent(new Text(""));
+		root.addContent(new Text(fixture._input[0]));
+		root.addContent(new Text("  \n \n "));
+		root.addContent(new Text("  \t "));
+		root.addContent(new Text("  "));
+		assertEquals(expect(fixture._input[1]), 
+				outputElementAsString(fraw,     root));
+        assertEquals(expect(fixture._input[2]), 
+                outputElementAsString(frawfp,   root));
+		assertEquals(expect(fixture._input[3]), 
+				outputElementAsString(fcompact, root));
+		assertEquals(expect(fixture._input[4]), 
+				outputElementAsString(fpretty,  root));
+		assertEquals(expect(fixture._input[5]), 
+				outputElementAsString(ftso,  root));
+		assertEquals(expect(fixture._input[6]), 
+				outputElementAsString(ftfw,     root));
+	}
+	
+	protected void checkOutput(Object content, String raw, String compact, String pretty, String tso, String trimfw) {
+		Class<?> clazz = content.getClass();
+		checkOutput(content, "output", clazz, null, raw, compact, pretty, tso, trimfw);
+	}
+	
+	protected void checkOutput(Object content, FormatSetup setup, String raw, String compact, String pretty, String tso, String trimfw) {
+		Class<?> clazz = content.getClass();
+		checkOutput(content, "output", clazz, setup, raw, compact, pretty, tso, trimfw);
+	}
+	
+	private interface OutputRunner {
+	    boolean matches(Class<?> claxx);
+	    String outputString(AbstractTestOutputter tester, Format format, Object data);
+	}
+	
+	private static abstract class AbstractRunner implements OutputRunner {
+	    private final Class<?> clazz;
+
+        public AbstractRunner(Class<?> claxx) {
+            this.clazz = claxx;
+        }
+        
+        @Override
+        public boolean matches(Class<?> claxx) {
+            return this.clazz.isAssignableFrom(claxx);
+        }
+	    
+	}
+
+    /**
+	 * The following method will run the output data through each of the three base
+	 * formatters, raw, compact, and pretty. It will also run each of those
+	 * formatters as the outputString(content), output(content, OutputStream)
+	 * and output(content, Writer).
+	 * 
+	 * The expectation is that the results of the three output forms (String,
+	 * OutputStream, and Writer) will be identical, and that it will match
+	 * the expected value for the appropriate formatter.
+	 * 
+	 * @param content The content to output
+	 * @param methodprefix What the methods are called
+	 * @param clazz The class used as the parameter for the methods.
+	 * @param setup A callback mechanism to modify the formatters
+	 * @param raw  What we expect the content to look like with the RAW format
+	 * @param compact What we expect the content to look like with the COMPACT format
+	 * @param pretty What we expect the content to look like with the PRETTY format
+	 * @param trimfw What we expect the content to look like with the TRIM_FULL_WHITE format
+	 */
+	protected void checkOutput(Object content, String methodprefix, Class<?> clazz, 
+			FormatSetup setup, String raw, String compact, String pretty, String tso, String trimfw) {
+		OutputRunner meth = getMyMethod(methodprefix, clazz);
+		
+		String[] descn   = new String[] {"Raw", "PrettyPreserve", "Compact", "Pretty", "PrettySpecifiedOnly", "TrimFullWhite"};
+
+		Format ftrimfw = Format.getPrettyFormat();
+		ftrimfw.setTextMode(TextMode.TRIM_FULL_WHITE);
+		Format fattspec = Format.getPrettyFormat();
+		fattspec.setSpecifiedAttributesOnly(true);
+		Format[] formats = new Format[] {
+				getFormat(setup, Format.getRawFormat()), 
+                getFormat(setup, Format.getPrettyFormat().setTextMode(TextMode.PRESERVE)), 
+				getFormat(setup, Format.getCompactFormat()),
+				getFormat(setup, Format.getPrettyFormat()),
+				getFormat(setup, fattspec),
+				getFormat(setup, ftrimfw)};
+		String[] result  = new String[] {raw, raw, compact, pretty, tso, trimfw};
+		
+		for (int i = 0; i < result.length; i++) {
+			
+			String mstring;
+			try {
+				mstring = meth.outputString(this, formats[i], content);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new IllegalStateException(e);
+			}
+			String msg = "outputString Format " + descn[i];
+			assertEquals(msg, expect(result[i]), mstring);
+		}
+	}
+	
+	protected Format getFormat(FormatSetup setup, Format input) {
+		if (setup == null) {
+			input.setLineSeparator("\n");
+			return input;
+		}
+		input.setLineSeparator("\n");
+		setup.setup(input);
+		return input;
+	}
+	
+	private OutputRunner getMyMethod(String methpfx, Class<?> claxx) {
+	    if ("outputElementContent".equals(methpfx)) {
+	        return ECRUNNER;
+	    }
+	    for (OutputRunner runner : RUNNERS) {
+	        if (runner.matches(claxx)) {
+	            return runner;
+	        }
+	    }
+	    throw new IllegalStateException("Unable to find a runner for type " + claxx);
+	}
+
+	private static String[] INPUT1 = { " ", "<root><![CDATA[ ]]>        \n \n   \t   </root>",
+			"<root><![CDATA[ ]]>        \n \n   \t   </root>", "<root/>", "<root/>", "<root/>", "<root/>" };
+
+	private static String[] EXPECTED1 = null;
+
+	private static String[] INPUT2 = { "X", "<root><![CDATA[ ]]>     X  \n \n   \t   </root>",
+			"<root><![CDATA[ ]]>     X  \n \n   \t   </root>", "<root>X</root>", "<root>X</root>", "<root>X</root>",
+			"<root><![CDATA[ ]]>     X  \n \n   \t   </root>" };
+
+	private static String[] EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private String[] _input;
+		private Object _expected;
+
+		public Fixture(String[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

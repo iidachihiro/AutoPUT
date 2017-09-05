@@ -1,0 +1,17 @@
+Subject1
+CircularFifoQueueTest,testRemoveError8,org.apache.commons.collections4.queue
+MultiKeyTest,testGetKeysArrayConstructorCloned,org.apache.commons.collections4.keyvalue
+CircularFifoQueueTest,testConstructorException1,org.apache.commons.collections4.queue
+CursorableLinkedListTest,testSerialization,org.apache.commons.collections4.list
+LRUMapTest,testRemoveLRUBlocksRemove,org.apache.commons.collections4.map
+Flat3MapTest,testEquals1,org.apache.commons.collections4.map
+CursorableLinkedListTest,testCursorNextIndexAddNext,org.apache.commons.collections4.list
+BoundedIteratorTest,testNegativeOffset,org.apache.commons.collections4.iterators
+AbstractSortedMapTest,testHeadMapOutOfRange,org.apache.commons.collections4.map
+CursorableLinkedListTest,testSubListAddEnd,org.apache.commons.collections4.list
+
+Subject2
+CircularFifoQueueTest,testRemoveError4,org.apache.commons.collections4.queue
+BoundedIteratorTest,testEmptyBounded,org.apache.commons.collections4.iterators
+MapBackedSet2Test,testCanonicalEmptyCollectionExists,org.apache.commons.collections4.set
+

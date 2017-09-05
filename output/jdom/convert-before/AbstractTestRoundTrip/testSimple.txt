@@ -1,0 +1,64 @@
+package org.jdom2.test.cases.output;
+
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+
+import org.junit.Test;
+
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.XMLOutputter;
+import org.jdom2.test.util.FidoFetch;
+import org.jdom2.test.util.UnitTestUtil;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+@SuppressWarnings("javadoc")
+public abstract @RunWith(Parameterized.class) class AbstractTestRoundTrip {
+
+	abstract Document roundTrip(Document doc);
+	
+	abstract Document prepare(Document doc);
+	
+	private final void checkRoundTrip(final Document indoc) {
+		final Document doc = prepare(indoc);
+		final Document rtdoc = roundTrip(doc);
+		assertTrue(rtdoc != null);
+		try {
+			XMLOutputter xout = new XMLOutputter();
+			System.out.println("Compare from:\n");
+			xout.output(doc, System.out);
+			System.out.println("Compare to:\n");
+			xout.output(rtdoc, System.out);
+			System.out.println("\n\n");
+		} catch (IOException ioe) {
+			// swallow
+		}
+		UnitTestUtil.compare(doc,  rtdoc);
+	}
+	
+	@Test
+	public void testSimple() throws JDOMException, IOException {
+		final SAXBuilder sb = new SAXBuilder();
+		
+		final Document doc = sb.build(FidoFetch.getFido().getURL(_input));
+		doc.setBaseURI(null);
+		checkRoundTrip(doc);
+	}
+
+	@Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{"/DOMBuilder/simple.xml",{}},{"/DOMBuilder/namespaces.xml",{}},{"/DOMBuilder/complex.xml",{}}});}
+
+	private String _input;
+	private Object _expected;
+
+	public AutoPUT(String _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+	
+}

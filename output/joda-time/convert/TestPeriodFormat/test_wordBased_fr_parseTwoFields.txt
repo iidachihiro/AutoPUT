@@ -1,0 +1,105 @@
+/*
+ *  Copyright 2001-2014 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time.format;
+
+import java.util.Locale;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.Period;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * This class is a Junit unit test for PeriodFormat.
+ *
+ * @author Stephen Colebourne
+ */
+public @RunWith(Theories.class) class AutoPutTest extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestPeriodFormat.class);
+    }
+
+    public TestPeriodFormat(String name) {
+        super(name);
+    }
+
+    protected void setUp() throws Exception {
+        originalLocale = Locale.getDefault();
+        Locale.setDefault(DE);
+    }
+
+    protected void tearDown() throws Exception {
+        Locale.setDefault(originalLocale);
+        originalLocale = null;
+    }
+
+    //-----------------------------------------------------------------------
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        Period p = Period.days(2).withHours(5);
+        assertEquals(p, PeriodFormat.wordBased(FR).parsePeriod(_input.fixture));
+    }
+
+    private static String INPUT1 = "2 jours et 5 heures";
+
+	private static String EXPECTED1 = null;
+
+	private static String INPUT2 = "2 dias e 5 horas";
+
+	private static String EXPECTED2 = null;
+
+	private static String INPUT3 = "2 d\u00EDas y 5 horas";
+
+	private static String EXPECTED3 = null;
+
+	private static String INPUT4 = "2 Tage und 5 Stunden";
+
+	private static String EXPECTED4 = null;
+
+	private static String INPUT5 = "2 dagen en 5 uur";
+
+	private static String EXPECTED5 = null;
+
+	private static String INPUT6 = "2\u65E55\u6642\u9593";
+
+	private static String EXPECTED6 = null;
+
+	private static String INPUT7 = "2 dni i 5 godzin";
+
+	private static String EXPECTED7 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5),new Fixture(INPUT6,EXPECTED6),new Fixture(INPUT7,EXPECTED7)};
+
+	public static class Fixture {
+		private String _input;
+		private Object _expected;
+
+		public Fixture(String _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

@@ -1,0 +1,112 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.linear;
+
+import java.text.NumberFormat;
+import java.text.ParsePosition;
+import java.util.Locale;
+
+import org.junit.Test;
+import org.junit.Assert;
+import org.apache.commons.math4.exception.MathParseException;
+import org.apache.commons.math4.linear.ArrayRealVector;
+import org.apache.commons.math4.linear.RealVectorFormat;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+public abstract @RunWith(Theories.class) class AutoPutTest {
+
+    protected abstract Locale getLocale();
+
+    protected abstract char getDecimalCharacter();
+
+    public RealVectorFormatAbstractTest() {
+        realVectorFormat = RealVectorFormat.getInstance(getLocale());
+        final NumberFormat nf = NumberFormat.getInstance(getLocale());
+        nf.setMaximumFractionDigits(2);
+        realVectorFormatSquare = new RealVectorFormat("[", "]", " : ", nf);
+    }
+
+    @Test
+    public void tesNegativeInfinity() {
+        ArrayRealVector c = new ArrayRealVector(new double[] {
+                Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
+        });
+        String expected = "{(-Infinity); (-Infinity); (-Infinity)}";
+        String actual = realVectorFormat.format(c);
+        Assert.assertEquals(expected, actual);
+    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        String source =
+            fixture._input[0] + getDecimalCharacter() +
+            fixture._input[1] + getDecimalCharacter() +
+            fixture._input[2] + getDecimalCharacter() +
+            fixture._input[3];
+        ArrayRealVector expected = new ArrayRealVector(new double[] {fixture._expected[0], fixture._expected[1], fixture._expected[2]});
+        ArrayRealVector actual = realVectorFormat.parse(source);
+        Assert.assertEquals(expected, actual);
+    }
+
+    private static String[] INPUT1 = { "{1", "23; 1", "43; 1", "63}" };
+
+	private static String[] EXPECTED1 = { 1.23, 1.43, 1.63 };
+
+	private static String[] INPUT2 = { "{1", "2323; 1", "4343; 1", "6333}" };
+
+	private static String[] EXPECTED2 = { 1.2323, 1.4343, 1.6333 };
+
+	private static String[] INPUT3 = { "{-1", "2323; 1", "4343; 1", "6333}" };
+
+	private static String[] EXPECTED3 = { -1.2323, 1.4343, 1.6333 };
+
+	private static String[] INPUT4 = { "{1", "2323; -1", "4343; 1", "6333}" };
+
+	private static String[] EXPECTED4 = { 1.2323, -1.4343, 1.6333 };
+
+	private static String[] INPUT5 = { "{1", "2323; 1", "4343; -1", "6333}" };
+
+	private static String[] EXPECTED5 = { 1.2323, 1.4343, -1.6333 };
+
+	private static String[] INPUT6 = { "{-1", "2323; -1", "4343; -1", "6333}" };
+
+	private static String[] EXPECTED6 = { -1.2323, -1.4343, -1.6333 };
+
+	private static String[] INPUT7 = { "{0", "0; -1", "4343; 1", "6333}" };
+
+	private static String[] EXPECTED7 = { 0.0, -1.4343, 1.6333 };
+
+	private static String[] INPUT8 = { "[1", "2323 : 1", "4343 : 1", "6333]" };
+
+	private static String[] EXPECTED8 = { 1.2323, 1.4343, 1.6333 };
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5),new Fixture(INPUT6,EXPECTED6),new Fixture(INPUT7,EXPECTED7),new Fixture(INPUT8,EXPECTED8)};
+
+	public static class Fixture {
+		private String[] _input;
+		private double[] _expected;
+
+		public Fixture(String[] _input, double[] _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

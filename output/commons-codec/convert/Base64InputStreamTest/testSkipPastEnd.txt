@@ -1,0 +1,83 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.codec.binary;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Arrays;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+/**
+ * @version $Id $
+ * @since 1.4
+ */
+public @RunWith(Theories.class) class AutoPutTest {
+
+    /**
+     * Tests skipping past the end of a stream.
+     *
+     * @throws Throwable
+     */
+    @Theory
+	public void autoPutTest(Fixture fixture) throws Throwable {
+        final InputStream ins = new ByteArrayInputStream(StringUtils.getBytesIso8859_1(ENCODED_B64));
+        final Base64InputStream b64stream = new Base64InputStream(ins);
+        // due to CODEC-130, skip now skips correctly decoded characters rather than encoded
+        assertEquals(6, b64stream.skip(_input.fixture));
+        // End of stream reached
+        assertEquals(-1, b64stream.read());
+        assertEquals(-1, b64stream.read());
+        b64stream.close();
+    }
+
+    private static double INPUT1 = 10;
+
+	private static double EXPECTED1 = null;
+
+	private static double INPUT2 = 6;
+
+	private static double EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private double _input;
+		private Object _expected;
+
+		public Fixture(double _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

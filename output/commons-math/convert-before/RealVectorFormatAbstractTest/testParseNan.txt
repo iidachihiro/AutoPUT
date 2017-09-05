@@ -1,0 +1,65 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.linear;
+
+import java.text.NumberFormat;
+import java.text.ParsePosition;
+import java.util.Locale;
+
+import org.junit.Test;
+import org.junit.Assert;
+import org.apache.commons.math4.exception.MathParseException;
+import org.apache.commons.math4.linear.ArrayRealVector;
+import org.apache.commons.math4.linear.RealVectorFormat;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+public abstract @RunWith(Parameterized.class) class RealVectorFormatAbstractTest {
+
+    protected abstract Locale getLocale();
+
+    protected abstract char getDecimalCharacter();
+
+    @Test
+    public void tesNegativeInfinity() {
+        ArrayRealVector c = new ArrayRealVector(new double[] {
+                Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
+        });
+        String expected = "{(-Infinity); (-Infinity); (-Infinity)}";
+        String actual = realVectorFormat.format(c);
+        Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testParseNan() {
+        String source = _input[0];
+        ArrayRealVector actual = realVectorFormat.parse(source);
+        Assert.assertEquals(new ArrayRealVector(new double[] {_input[1], _input[2], _input[3]}), actual);
+    }
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{{"{(NaN); (NaN); (NaN)}",Double.NaN,Double.NaN,Double.NaN},{}},{{"{(Infinity); (Infinity); (Infinity)}",Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY},{}},{{"{(-Infinity); (-Infinity); (-Infinity)}",Double.NEGATIVE_INFINITY,Double.NEGATIVE_INFINITY,Double.NEGATIVE_INFINITY},{}}});}
+
+	private Object[] _input;
+	private Object _expected;
+
+	public AutoPUT(Object[] _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+}

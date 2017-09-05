@@ -1,0 +1,94 @@
+/*
+ *  Copyright 2001-2005 Stephen Colebourne
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+package org.joda.time.convert;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Locale;
+
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
+import org.joda.time.Chronology;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.MutableInterval;
+import org.joda.time.MutablePeriod;
+import org.joda.time.PeriodType;
+import org.joda.time.TimeOfDay;
+import org.joda.time.chrono.BuddhistChronology;
+import org.joda.time.chrono.ISOChronology;
+import org.joda.time.chrono.JulianChronology;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+/**
+ * This class is a Junit unit test for StringConverter.
+ *
+ * @author Stephen Colebourne
+ */
+public @RunWith(Parameterized.class) class TestStringConverter extends TestCase {
+
+    public static void main(String[] args) {
+        junit.textui.TestRunner.run(suite());
+    }
+
+    public static TestSuite suite() {
+        return new TestSuite(TestStringConverter.class);
+    }
+
+    protected void setUp() throws Exception {
+        zone = DateTimeZone.getDefault();
+        locale = Locale.getDefault();
+        DateTimeZone.setDefault(LONDON);
+        Locale.setDefault(Locale.UK);
+        
+        JULIAN = JulianChronology.getInstance();
+        ISO = ISOChronology.getInstance();
+    }
+
+    protected void tearDown() throws Exception {
+        DateTimeZone.setDefault(zone);
+        Locale.setDefault(locale);
+        zone = null;
+    }
+
+    public void testSetIntoPeriod_Object2() throws Exception {
+        MutablePeriod m = new MutablePeriod(PeriodType.yearWeekDayTime());
+        StringConverter.INSTANCE.setInto(m, _input, null);
+        assertEquals(2, m.getYears());
+        assertEquals(4, m.getWeeks());
+        assertEquals(3, m.getDays());
+        assertEquals(12, m.getHours());
+        assertEquals(24, m.getMinutes());
+        assertEquals(_expected[0], m.getSeconds());
+        assertEquals(_expected[1], m.getMillis());
+    }        
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{"P2Y4W3DT12H24M48S",{48,0}},{"P2Y4W3DT12H24M48.034S",{48,34}},{"P2Y4W3DT12H24M.056S",{0,56}},{"P2Y4W3DT12H24M56.S",{56,0}},{"P2Y4W3DT12H24M56.1234567S",{56,123}}});}
+
+	private String _input;
+	private double[] _expected;
+
+	public AutoPUT(String _input, double[] _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+
+}

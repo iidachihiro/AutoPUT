@@ -1,0 +1,106 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.genetics;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.Assert;
+import org.apache.commons.math4.exception.DimensionMismatchException;
+import org.apache.commons.math4.exception.MathIllegalArgumentException;
+import org.apache.commons.math4.exception.OutOfRangeException;
+import org.apache.commons.math4.genetics.BinaryChromosome;
+import org.apache.commons.math4.genetics.Chromosome;
+import org.apache.commons.math4.genetics.ChromosomePair;
+import org.apache.commons.math4.genetics.CrossoverPolicy;
+import org.apache.commons.math4.genetics.UniformCrossover;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameters;
+
+public @RunWith(Parameterized.class) class UniformCrossoverTest {
+    @SuppressWarnings("boxing")
+    @BeforeClass
+    public static void setUpBeforeClass() {
+        for (int i = 0; i < LEN; i++) {
+            p1.add(0);
+            p2.add(1);
+        }
+    }
+
+    @Test(expected = OutOfRangeException.class)
+    public void testRatioTooLow() {
+        new UniformCrossover<Integer>(_input);
+    }
+
+    private void performCrossover(double ratio) {
+        final DummyBinaryChromosome p1c = new DummyBinaryChromosome(p1);
+        final DummyBinaryChromosome p2c = new DummyBinaryChromosome(p2);
+
+        final CrossoverPolicy cp = new UniformCrossover<Integer>(ratio);
+
+        // make a number of rounds
+        for (int i = 0; i < 20; i++) {
+            final ChromosomePair pair = cp.crossover(p1c, p2c);
+
+            final List<Integer> c1 = ((DummyBinaryChromosome) pair.getFirst()).getRepresentation();
+            final List<Integer> c2 = ((DummyBinaryChromosome) pair.getSecond()).getRepresentation();
+
+            int from1 = 0;
+            int from2 = 0;
+
+            // check first child
+            for (int val : c1) {
+                if (val == 0) {
+                    from1++;
+                } else {
+                    from2++;
+                }
+            }
+
+            Assert.assertEquals(1.0 - ratio, (double) from1 / LEN, 0.1);
+            Assert.assertEquals(ratio, (double) from2 / LEN, 0.1);
+
+            from1 = 0;
+            from2 = 0;
+
+            // check second child
+            for (int val : c2) {
+                if (val == 0) {
+                    from1++;
+                } else {
+                    from2++;
+                }
+            }
+
+            Assert.assertEquals(ratio, (double) from1 / LEN, 0.1);
+            Assert.assertEquals(1.0 - ratio, (double) from2 / LEN, 0.1);
+        }
+    }
+
+    @Parameters public static Collection<Object[]> data(){return Arrays.asList(new Object[][]{{-0.5d,{}},{1.5d,{}}});}
+
+	private double _input;
+	private Object _expected;
+
+	public AutoPUT(double _input, Object _expected) {
+		this._input = _input;
+		this._expected = _expected;
+	}
+}

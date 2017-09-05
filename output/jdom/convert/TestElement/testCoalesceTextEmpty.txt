@@ -1,0 +1,508 @@
+package org.jdom2.test.cases;
+
+/*--
+
+ Copyright (C) 2000 Brett McLaughlin & Jason Hunter.
+ All rights reserved.
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+
+ 1. Redistributions of source code must retain the above copyright
+	notice, this list of conditions, and the following disclaimer.
+
+ 2. Redistributions in binary form must reproduce the above copyright
+	notice, this list of conditions, and the disclaimer that follows
+	these conditions in the documentation and/or other materials
+	provided with the distribution.
+
+ 3. The name "JDOM" must not be used to endorse or promote products
+	derived from this software without prior written permission.  For
+	written permission, please contact license@jdom.org.
+
+ 4. Products derived from this software may not be called "JDOM", nor
+	may "JDOM" appear in their name, without prior written permission
+	from the JDOM Project Management (pm@jdom.org).
+
+ In addition, we request (but do not require) that you include in the
+ end-user documentation provided with the redistribution and/or in the
+ software itself an acknowledgement equivalent to the following:
+	 "This product includes software developed by the
+	  JDOM Project (http://www.jdom.org/)."
+ Alternatively, the acknowledgment may be graphical using the logos
+ available at http://www.jdom.org/images/logos.
+
+ THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+ WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED.  IN NO EVENT SHALL THE JDOM AUTHORS OR THE PROJECT
+ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ SUCH DAMAGE.
+
+ This software consists of voluntary contributions made by many
+ individuals on behalf of the JDOM Project and was originally
+ created by Brett McLaughlin <brett@jdom.org> and
+ Jason Hunter <jhunter@jdom.org>.  For more information on the
+ JDOM Project, please see <http://www.jdom.org/>.
+
+ */
+
+/**
+ * Please put a description of your test here.
+ *
+ * @author unascribed
+ * @version 0.1
+ */
+
+import static org.jdom2.test.util.UnitTestUtil.checkException;
+import static org.jdom2.test.util.UnitTestUtil.failNoException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.StringWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.Test;
+import org.junit.runner.JUnitCore;
+
+import org.jdom2.Attribute;
+import org.jdom2.AttributeType;
+import org.jdom2.CDATA;
+import org.jdom2.Comment;
+import org.jdom2.Content;
+import org.jdom2.DocType;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.EntityRef;
+import org.jdom2.IllegalAddException;
+import org.jdom2.IllegalNameException;
+import org.jdom2.Namespace;
+import org.jdom2.ProcessingInstruction;
+import org.jdom2.Text;
+import org.jdom2.Content.CType;
+import org.jdom2.filter.ContentFilter;
+import org.jdom2.filter.ElementFilter;
+import org.jdom2.filter.Filters;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+import org.jdom2.test.util.UnitTestUtil;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+@SuppressWarnings("javadoc")
+public final @RunWith(Theories.class) class AutoPutTest {
+
+    /**
+     * The main method runs all the tests in the text ui
+     */
+    public static void main(String args[]) {
+        JUnitCore.runClasses(TestElement.class);
+    }
+
+    
+
+    /**
+     * Test that hasChildren only reports true for actual child elements.
+     */
+/*
+    public void test_TCM__boolean_hasChildren() {
+        //set up an element to test with
+        Element element = new Element("element", Namespace.getNamespace("http://foo"));
+        assertTrue("reported children when there are none", !element.hasChildren());
+
+        Attribute att1 = new Attribute("anAttribute", "boo");
+        element.setAttribute(att1);
+        assertTrue("reported children when there are none", !element.hasChildren());
+
+        //add some text
+        element.addContent("the text");
+        assertTrue("reported children when there are none", !element.hasChildren());
+
+        //add some CDATA
+        element.addContent(new CDATA("the text"));
+        assertTrue("reported children when there are none", !element.hasChildren());
+
+        //add a PI
+        element.addContent(new ProcessingInstruction("pi", "the text"));
+        assertTrue("reported children when there are none", !element.hasChildren());
+
+        //add Comment
+        element.addContent(new Comment("the text"));
+        assertTrue("reported children when there are none", !element.hasChildren());
+
+        //finally a child element
+        Element child1 = new Element("child1");
+        element.addContent(child1);
+        assertTrue("reported no children when there is a child element", element.hasChildren());
+    }
+*/
+
+    
+
+    /**
+     * Test removeChildren which removes all child elements
+     */
+/*
+    public void test_TCM__boolean_removeChildren() {
+        Namespace ns = Namespace.getNamespace("x", "urn:fudge");
+        Element element = new Element("element");
+
+        assertTrue("incorrectly returned true when deleting no content", element.removeChildren() == false);
+
+        Element child = new Element("child", ns);
+        Element child2 = new Element("child", ns);
+        element.addContent(child);
+        element.addContent(child2);
+
+        assertTrue("couldn't remove child content", element.removeChildren());
+        assertNull("child not removed", element.getContent("child", ns));
+    }
+*/
+
+    /**
+     * Test removeChildren by name.
+     */
+/*
+    public void test_TCM__boolean_removeChildren_String() {
+        Element element = new Element("element");
+
+        assertTrue("incorrectly returned true when deleting no content", element.removeChildren() == false);
+
+        Element child = new Element("child");
+        Element child2 = new Element("child");
+        element.addContent(child);
+        element.addContent(child2);
+
+        assertTrue("incorrect return on bogus child", !element.removeChildren("test"));
+        assertNotNull("child incorrectly removed", element.getContent("child"));
+        assertTrue("couldn't remove child content", element.removeChildren("child"));
+        assertNull("children not removed", element.getContent("child"));
+    }
+*/
+
+    /**
+     * Test removeChildren with a name and namespace
+     */
+/*
+    public void test_TCM__boolean_removeChildren_String_OrgJdomNamespace() {
+        Namespace ns = Namespace.getNamespace("x", "urn:fudge");
+        Element element = new Element("element");
+
+        assertTrue("incorrectly returned true when deleting no content", element.removeChildren() == false);
+
+        Element child = new Element("child", ns);
+        Element child2 = new Element("child", ns);
+        element.addContent(child);
+        element.addContent(child2);
+
+        assertTrue("incorrect return on bogus child", !element.removeChildren("child"));
+        assertNotNull("child incorrectly removed", element.getContent("child", ns));
+        assertTrue("couldn't remove child content", element.removeChildren("child", ns));
+        assertNull("children not removed", element.getContent("child", ns));
+    }
+*/
+
+    /**
+     * Test setAttribute with a supplied name and value
+     */
+    private void helper_setAttribute_String_String__attributeType(final AttributeType attributeType) {
+        final Element element = new Element("el");
+
+        final String attributeName = "name";
+		final String attributeValue = "value";
+        final String attributeNewValue = "newValue";
+
+		final Attribute attribute = new Attribute(attributeName, attributeValue, attributeType);
+
+		// add attribute to element
+		element.setAttribute(attribute);
+
+		final Attribute foundAttribute = element.getAttribute(attributeName);
+        assertNotNull("no Attribute found", foundAttribute);
+        
+        assertEquals("incorrect Attribute name returned", attributeName, foundAttribute.getName());
+        assertEquals("incorrect Attribute value returned", attributeValue, foundAttribute.getValue());
+        assertEquals("incorrect Attribute type returned", attributeType, foundAttribute.getAttributeType());
+
+		//update the value
+        element.setAttribute(attributeName, attributeNewValue);
+
+		final Attribute changedAttribute = element.getAttribute(attributeName);
+        assertNotNull("no Attribute found", changedAttribute);
+        
+        assertEquals("incorrect Attribute name returned", attributeName, changedAttribute.getName());
+        assertEquals("incorrect Attribute value returned", attributeNewValue, changedAttribute.getValue());
+        assertEquals("incorrect Attribute type returned", attributeType, changedAttribute.getAttributeType());
+    }
+
+    /**
+     * Test setAttribute with a supplied name and value
+     * 
+     * @author Victor Toni
+     */
+    private void helper_setAttribute_String_String_String__attributeType(final AttributeType attributeType) {
+        try {
+            final Namespace defaultNamespace = Namespace.getNamespace(null, "http://test.org/default");
+            helper_setAttribute_String_String_String__attributeType(defaultNamespace, attributeType);
+            fail("didn't catch empty prefix for attribute ");
+        }
+        catch( final IllegalNameException ignore) {
+			// Do nothing
+		} catch (Exception e) {
+			fail("Unexpected exception " + e.getClass());
+        }
+
+        final Namespace testNamespace = Namespace.getNamespace("test", "http://test.org/test");
+        helper_setAttribute_String_String_String__attributeType(testNamespace, attributeType);
+    }
+
+    /**
+     * Test setAttribute with a supplied name, namespace and value
+     * 
+     * @author Victor Toni
+     */
+    private void helper_setAttribute_String_String_String__attributeType(final Namespace namespace, final AttributeType attributeType) {
+        final Element element = new Element("el");
+
+        final String attributeName = "name";
+        final String attributeValue = "value";
+        final String attributeNewValue = "newValue";
+
+        final Attribute attribute = new Attribute(attributeName, attributeValue, attributeType, namespace);
+
+        // add attribute to element
+        element.setAttribute(attribute);
+
+        final Attribute foundAttribute = element.getAttribute(attributeName, namespace);
+        assertNotNull("no Attribute found", foundAttribute);
+        
+        assertEquals("incorrect Attribute name returned", attributeName, foundAttribute.getName());
+        assertEquals("incorrect Attribute value returned", attributeValue, foundAttribute.getValue());
+        assertEquals("incorrect Attribute type returned", attributeType, foundAttribute.getAttributeType());
+
+        //update the value
+        element.setAttribute(attributeName, attributeNewValue, namespace);
+
+        final Attribute changedAttribute = element.getAttribute(attributeName, namespace);
+        assertNotNull("no Attribute found", changedAttribute);
+        
+        assertEquals("incorrect Attribute name returned", attributeName, changedAttribute.getName());
+        assertEquals("incorrect Attribute value returned", attributeNewValue, changedAttribute.getValue());
+        assertEquals("incorrect Attribute type returned", attributeType, changedAttribute.getAttributeType());
+    }
+
+    
+
+    /**
+     * Test setting child elements in a list.
+     */
+/*
+    public void test_TCM__OrgJdomElement_setChildren_List() {
+        Element element = new Element("el");
+        assertEquals("did not return Collections.EMPTY_LIST on empty element", Collections.EMPTY_LIST, element.getChildren("child"));
+        Element child1 = new Element("child");
+        child1.setAttribute(new Attribute("name", "first"));
+
+        Element child2 = new Element("child");
+        child2.setAttribute(new Attribute("name", "second"));
+        Element child3 = new Element("child", Namespace.getNamespace("ftp://wombat.stew"));
+
+        ArrayList list = new ArrayList();
+        list.add(child1);
+        list.add(child2);
+        list.add(child3);
+
+        element.setChildren(list);
+
+        //should only get the child elements in all namespaces
+        List contentList = element.getChildren();
+        assertEquals("incorrect number of children returned", 3, contentList.size());
+        assertEquals("incorrect child returned", contentList.get(0), child1);
+        assertEquals("incorrect child returned", contentList.get(1), child2);
+        assertEquals("incorrect child returned", contentList.get(2), child3);
+
+        ArrayList newList = new ArrayList();
+        newList.add(child1);
+        newList.add(new Attribute("name", "bogus"));
+
+        try {
+            element.setChildren(newList);
+            fail("didn't catch a bad object in list");
+        }
+        catch (IllegalArgumentException e) {
+        }
+        //should be an atomic operation
+        contentList = element.getChildren();
+        assertEquals("wrong number of children after failed add", 3, contentList.size());
+        assertEquals("incorrect child returned after failed add", contentList.get(0), child1);
+        assertEquals("incorrect child returned after failed add", contentList.get(1), child2);
+        assertEquals("incorrect child returned after failed add", contentList.get(2), child3);
+
+
+        //nulls should reset the list
+        element.setContent(null);
+        assertTrue("didn't reset children List", element.getContent().isEmpty());
+    }
+*/
+
+    
+
+//    @Test
+//    public void test_AddingString() {
+//    	Vector<Object> v = new Vector<Object>();
+//    	v.add("one");
+//    	Element e = new Element("e");
+//    	try {
+//    		e.setContent(v);
+//    		fail("Should not be avle to add String content");
+//    	} catch (ClassCastException cce) {
+//    		// good.
+//    	} catch (Exception ex) {
+//    		fail("Expected ClassCastException, not " + ex.getClass());
+//    	}
+//    }
+    
+	
+	
+//	@Test
+//	public void testElementAddAttribute() {
+//		try {
+//			List<Content> list = (new Element("tag").getContent());
+//			list.add(new Attribute("att", "value"));
+//			fail ("Should not be able to add Attribute to an Element's ContentList");
+//		} catch (IllegalAddException iae) {
+//			// good!
+//		} catch (Exception e) {
+//			fail ("We expect an IllegalAddException, but got " + e.getClass().getName());
+//		}
+//	}
+	
+	@SuppressWarnings("unchecked")
+	private final void addBrokenContent(Collection<?> cn, Object val) {
+		// this method is intentionally broken.
+		Collection<Object> ocn = (Collection<Object>)cn;
+		ocn.add(val);
+	}
+	
+    private void checkAttOrder(List<Attribute> attributes, Attribute...atts) {
+		assertTrue(atts.length == attributes.size());
+		for (int i = atts.length - 1; i >= 0; i--) {
+			assertTrue(atts[i] == attributes.get(i));
+		}
+		
+	}
+
+	private String getTestString() {
+		return "  this  has  space ";
+	}
+	
+	private String getComp() {
+		return Format.compact(getTestString());
+	}
+	
+	private String getTrim() {
+		return Format.trimBoth(getTestString());
+	}
+	
+	private String getPlain() {
+		return getTestString(); 
+	}
+	
+	private Namespace getNamespace() {
+		return Namespace.getNamespace("jdomtest");
+	}
+
+	public Element getTextHelperRoot() {
+		final Namespace ns = getNamespace();
+		
+		final Element root = new Element("root");
+		final Element childa = new Element("child");
+		final Element childb = new Element("child", ns);
+		final Element childc = new Element("child");
+		final Element childd = new Element("child", ns);
+		final Element childe = new Element("kid");
+		final Element childf = new Element("kid", ns);
+		
+		childa.setText(getTestString());
+		childb.setText(getTestString());
+		childc.setText(getTestString());
+		childd.setText(getTestString());
+		root.addContent(childa);
+		root.addContent(childb);
+		root.addContent(childc);
+		root.addContent(childd);
+		root.addContent(childe);
+		root.addContent(childf);
+		
+		return root;
+	}
+
+	@Theory
+	public void autoPutTest(Fixture fixture) {
+		Element root = new Element("root");
+		root.addContent("");
+		root.addContent("one");
+		root.addContent("");
+		root.addContent(" ");
+		root.addContent("");
+		
+		root.addContent("two");
+		
+		root.addContent("");
+		root.addContent(" ");
+		root.addContent("");
+		root.addContent("three");
+		root.addContent("");
+		assertTrue(11 == root.getContentSize());
+		assertEquals("one two three", root.getText());
+		
+		assertTrue(root.coalesceText(fixture._input[0]));
+		assertTrue(1 == root.getContentSize());
+		assertEquals("one two three", root.getText());
+		assertFalse(root.coalesceText(fixture._input[1]));
+		assertEquals("one two three", root.getText());
+	}
+	
+	private static boolean[] INPUT1 = { false, false };
+
+	private static boolean[] EXPECTED1 = null;
+
+	private static boolean[] INPUT2 = { true, true };
+
+	private static boolean[] EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private boolean[] _input;
+		private Object _expected;
+
+		public Fixture(boolean[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}
