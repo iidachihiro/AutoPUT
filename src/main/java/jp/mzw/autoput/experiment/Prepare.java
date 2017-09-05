@@ -2,13 +2,16 @@ package jp.mzw.autoput.experiment;
 
 import jp.mzw.autoput.core.Project;
 import jp.mzw.autoput.core.TestSuite;
+import jp.mzw.autoput.maven.MavenUtils;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -32,8 +35,8 @@ public class Prepare {
     protected static final String CONVERTER_RESULT = "converter_results.csv";
     protected static final String EXPERIMENTAL_SETTING = "experimental_setting.csv";
     protected static final String[] PROJECTS =
-//            {"commons-codec"};
-            {"commons-codec", "commons-collections", "commons-math", "joda-time", "jdom"};
+            {"commons-codec"};
+//            {"commons-codec", "commons-collections", "commons-math", "joda-time", "jdom"};
 
     public static void main(String[] args) throws IOException {
         String command = args[0];
@@ -170,20 +173,45 @@ public class Prepare {
     }
 
     private static void compileCheck() {
-        for (String project : PROJECTS) {
-            System.out.println("Project: " + project);
-            List<CSVRecord> records = getExperimentalSubjects(project);
-            for (CSVRecord record : records) {
-                String className = record.get(0);
-                String originName = record.get(1);
-                String packageName = record.get(2);
-                String content = getConvertedTest(project, className, originName);
-                createFile(packageName, content);
-                compileFile()
-                
+        for (String projectId : PROJECTS) {
+            System.out.println("Project: " + projectId);
+            try {
+                Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
+                List<CSVRecord> records = getExperimentalSubjects(projectId);
+                for (CSVRecord record : records) {
+                    String className = record.get(0);
+                    String originName = record.get(1);
+                    String packageName = record.get(2);
+                    String content = getConvertedTest(projectId, className, originName);
+                    Path path = getPathToFile(projectId, packageName);
+                    createFile(path, content);
+                    File subject = project.getProjectDir();
+                    File mavenHome = project.getMavenHome();
+                    try {
+                        MavenUtils.testCompile(subject, mavenHome, className + "_" + originName);
+                    } catch (MavenInvocationException e) {
+                        e.printStackTrace();
+                    }  finally {
+                        deleteFile(path);
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
+    }
+
+    private static Path getPathToFile(String project, String packageName) {
+        String path;
+        if (project.equals("jdom")) {
+            path = String.join("/", "subjects", project, "test", "src", "java",
+                    packageName.replace(".", "/"), "AutoPutTest.java");
+        } else {
+            path = String.join("/", "subjects", project, "src", "test", "java",
+                    packageName.replace(".", "/"), "AutoPutTest.java");
+        }
+        return Paths.get(path);
     }
 
     private static List<CSVRecord> getExperimentalSubjects(String project) {
@@ -206,5 +234,28 @@ public class Prepare {
             e.printStackTrace();
         }
         return content;
+    }
+
+    private static void createFile(Path path, String content) {
+        if (Files.exists(path)) {
+            try {
+                Files.createFile(path);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try (BufferedWriter bw = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+            bw.write(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void deleteFile(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
