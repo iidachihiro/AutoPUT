@@ -1,0 +1,77 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.commons.math4.fraction;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+import org.apache.commons.math4.TestUtils;
+import org.apache.commons.math4.exception.ConvergenceException;
+import org.apache.commons.math4.exception.MathArithmeticException;
+import org.apache.commons.math4.exception.MathIllegalArgumentException;
+import org.apache.commons.math4.exception.NullArgumentException;
+import org.apache.commons.math4.exception.ZeroException;
+import org.apache.commons.math4.fraction.BigFraction;
+import org.apache.commons.math4.fraction.FractionConversionException;
+import org.apache.commons.math4.util.FastMath;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+
+public @RunWith(Theories.class) class AutoPutTest {
+
+    private void assertFraction(int expectedNumerator, int expectedDenominator, BigFraction actual) {
+        Assert.assertEquals(expectedNumerator, actual.getNumeratorAsInt());
+        Assert.assertEquals(expectedDenominator, actual.getDenominatorAsInt());
+    }
+
+    private void assertFraction(long expectedNumerator, long expectedDenominator, BigFraction actual) {
+        Assert.assertEquals(expectedNumerator, actual.getNumeratorAsLong());
+        Assert.assertEquals(expectedDenominator, actual.getDenominatorAsLong());
+    }
+
+    // MATH-1029
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        assertFraction((long) fixture._input[0], 1, new BigFraction(fixture._input[1], 1000));
+    }
+
+    private static double[] INPUT1 = { 1e10, 1e10 };
+
+	private static Object EXPECTED1 = null;
+
+	private static double[] INPUT2 = { -1e10, -1e10 };
+
+	private static Object EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private double[] _input;
+		private Object _expected;
+
+		public Fixture(double[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

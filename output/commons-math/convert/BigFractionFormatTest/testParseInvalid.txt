@@ -1,0 +1,91 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.fraction;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.text.NumberFormat;
+import java.util.Locale;
+
+import org.apache.commons.math4.exception.MathParseException;
+import org.apache.commons.math4.fraction.BigFraction;
+import org.apache.commons.math4.fraction.BigFractionFormat;
+import org.apache.commons.math4.fraction.ProperBigFractionFormat;
+import org.apache.commons.math4.util.FastMath;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+
+public @RunWith(Theories.class) class AutoPutTest {
+
+    BigFractionFormat properFormat = null;
+    BigFractionFormat improperFormat = null;
+
+    protected Locale getLocale() {
+        return Locale.getDefault();
+    }
+
+    @Before
+    public void setUp() {
+        properFormat = BigFractionFormat.getProperInstance(getLocale());
+        improperFormat = BigFractionFormat.getImproperInstance(getLocale());
+    }
+
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        String source = fixture._input;
+        String msg = "should not be able to parse '10 / a'.";
+        try {
+            properFormat.parse(source);
+            Assert.fail(msg);
+        } catch (MathParseException ex) {
+            // success
+        }
+        try {
+            improperFormat.parse(source);
+            Assert.fail(msg);
+        } catch (MathParseException ex) {
+            // success
+        }
+    }
+
+    private static String INPUT1 = "a";
+
+	private static Object EXPECTED1 = null;
+
+	private static String INPUT2 = "10 / a";
+
+	private static Object EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private String _input;
+		private Object _expected;
+
+		public Fixture(String _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

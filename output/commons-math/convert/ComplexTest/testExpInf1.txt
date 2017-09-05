@@ -1,0 +1,129 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.commons.math4.complex;
+
+import java.util.List;
+
+import org.apache.commons.math4.TestUtils;
+import org.apache.commons.math4.complex.Complex;
+import org.apache.commons.math4.complex.ComplexUtils;
+import org.apache.commons.math4.exception.NullArgumentException;
+import org.apache.commons.math4.util.FastMath;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+
+/**
+ */
+public @RunWith(Theories.class) class AutoPutTest {
+
+
+    private double inf = Double.POSITIVE_INFINITY;
+    private double neginf = Double.NEGATIVE_INFINITY;
+    private double nan = Double.NaN;
+    private double pi = FastMath.PI;
+    private Complex oneInf = new Complex(1, inf);
+    private Complex oneNegInf = new Complex(1, neginf);
+    private Complex infOne = new Complex(inf, 1);
+    private Complex infZero = new Complex(inf, 0);
+    private Complex infNaN = new Complex(inf, nan);
+    private Complex infNegInf = new Complex(inf, neginf);
+    private Complex infInf = new Complex(inf, inf);
+    private Complex negInfInf = new Complex(neginf, inf);
+    private Complex negInfZero = new Complex(neginf, 0);
+    private Complex negInfOne = new Complex(neginf, 1);
+    private Complex negInfNaN = new Complex(neginf, nan);
+    private Complex negInfNegInf = new Complex(neginf, neginf);
+    private Complex oneNaN = new Complex(1, nan);
+    private Complex zeroInf = new Complex(0, inf);
+    private Complex zeroNaN = new Complex(0, nan);
+    private Complex nanInf = new Complex(nan, inf);
+    private Complex nanNegInf = new Complex(nan, neginf);
+    private Complex nanZero = new Complex(nan, 0);
+
+    @Theory
+	public void autoPutTest(Fixture fixture) {
+        TestUtils.assertSame(Complex.NaN, oneInf.exp());
+    }
+
+    /**
+     * Class to test extending Complex
+     */
+    public static class TestComplex extends Complex {
+
+        /**
+         * Serialization identifier.
+         */
+        private static final long serialVersionUID = 3268726724160389237L;
+
+        public TestComplex(double real, double imaginary) {
+            super(real, imaginary);
+        }
+
+        public TestComplex(Complex other){
+            this(other.getReal(), other.getImaginary());
+        }
+
+        @Override
+        protected TestComplex createComplex(double real, double imaginary){
+            return new TestComplex(real, imaginary);
+        }
+
+    }
+
+	private static Object INPUT1 = null;
+
+	private static Object EXPECTED1 = null;
+
+	private static Object INPUT2 = null;
+
+	private static Object EXPECTED2 = null;
+
+	private static Object INPUT3 = null;
+
+	private static Object EXPECTED3 = null;
+
+	private static Object INPUT4 = null;
+
+	private static Object EXPECTED4 = null;
+
+	private static Object INPUT5 = null;
+
+	private static Object EXPECTED5 = null;
+
+	private static Object INPUT6 = null;
+
+	private static Object EXPECTED6 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5),new Fixture(INPUT6,EXPECTED6)};
+
+	public static class Fixture {
+		private Object _input;
+		private Object _expected;
+
+		public Fixture(Object _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}
