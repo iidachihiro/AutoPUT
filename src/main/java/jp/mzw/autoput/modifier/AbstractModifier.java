@@ -82,7 +82,11 @@ public abstract class AbstractModifier {
                 }
                 for (TestCase testCase : testSuite.getTestCases()) {
                     if (testCase.getName().equals(testCaseName)) {
-                        new ParameterizedModifierBase(project, testSuite).modify(testCase.getMethodDeclaration());
+                        try {
+                            new ParameterizedModifierBase(project, testSuite).modify(testCase.getMethodDeclaration());
+                        } catch (NullPointerException e) {
+                            System.err.println("NullPo At " + testSuiteName + "/" + testCaseName + ".txt");
+                        }
                         break;
                     }
                 }

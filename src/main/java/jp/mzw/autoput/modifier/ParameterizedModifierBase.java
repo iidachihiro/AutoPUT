@@ -76,16 +76,20 @@ public class ParameterizedModifierBase extends AbstractModifier {
         rewrite = ASTRewrite.create(ast);
         // テストメソッドを作成(既存のテストメソッドを修正する)
         modifyTestMethod(method);
-        // dataメソッドを作成
+        // data-pointsを作成
         createDataPoints(method);
         // 既存のテストメソッドを全て削除(コンストラクタと@Testのないものは残る)
         deleteOtherTestMethods(method);
+        // コンストラクタ名を修正
+        modifyConstructor(method);
         // import文を追加
         addImportDeclarations();
         // Fixtureクラスを追加
         addFixtureClass(method);
         // クラス名を変更，修飾子も追加
         modifyClassInfo();
+        // クラス内に出てくるクラス名をすべて変更
+        modifyClassName();
         // modify
         try {
             Document document = new Document(testSuite.getTestSources());
@@ -120,6 +124,18 @@ public class ParameterizedModifierBase extends AbstractModifier {
         listRewrite.insertLast(theories, null);
         listRewrite.insertLast(theory, null);
         listRewrite.insertLast(datapoints, null);
+    }
+
+    protected void modifyClassName() {
+        TypeDeclaration modified = getTargetType();
+        String typeName = modified.getName().getIdentifier();
+        List<Name> names = ASTUtils.getAllNames(modified);
+        for (Name name : names) {
+            if (name.toString().equals(typeName)) {
+                Name replace = ast.newName(CLASS_NAME);
+                rewrite.replace(name, replace, null);
+            }
+        }
     }
 
 
@@ -488,22 +504,44 @@ public class ParameterizedModifierBase extends AbstractModifier {
             if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                 target = target.getParent();
             }
-            SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
-            SimpleName expected = ast.newSimpleName(EXPECTED_VAR);
             FieldAccess replace = ast.newFieldAccess();
-            replace.setName(fixture);
-            replace.setExpression(expected);
+            SimpleName expected = ast.newSimpleName(EXPECTED_VAR);
+            replace.setName(expected);
+            SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
+            replace.setExpression(fixture);
             rewrite.replace(target, replace, null);
         } else {
             for (int i = 0; i < expectedRelatedNodes.size(); i++) {
                 ASTNode target = expectedRelatedNodes.get(i);
+
+                ASTNode replace;
+                QualifiedName fixtureExpected = ast.newQualifiedName(ast.newSimpleName(FIXTURE_NAME), ast.newSimpleName(EXPECTED_VAR));
+                ArrayAccess arrayAccess = ast.newArrayAccess();
+                arrayAccess.setArray(fixtureExpected);
+                arrayAccess.setIndex(ast.newNumberLiteral(String.valueOf(i)));
+                boolean isObjectArrayType = isObjectArrayType(getExpectedType(origin));
+                if (isObjectArrayType && isBooleanType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Boolean");
+                } else if (isObjectArrayType && isCharacterType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Character");
+                } else if (isObjectArrayType && isByteType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Byte");
+                } else if (isObjectArrayType && isShortType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Short");
+                } else if (isObjectArrayType && isIntType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Integer");
+                } else if (isObjectArrayType && isLongType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Long");
+                } else if (isObjectArrayType && isFloatType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Float");
+                } else if (isObjectArrayType && isDoubleType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Double");
+                } else {
+                    replace = arrayAccess;
+                }
                 if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                     target = target.getParent();
                 }
-                QualifiedName fixtureExpected = ast.newQualifiedName(ast.newSimpleName(FIXTURE_NAME), ast.newSimpleName(EXPECTED_VAR));
-                ArrayAccess replace = ast.newArrayAccess();
-                replace.setArray(fixtureExpected);
-                replace.setIndex(ast.newNumberLiteral(String.valueOf(i)));
                 rewrite.replace(target, replace, null);
             }
         }
@@ -511,26 +549,45 @@ public class ParameterizedModifierBase extends AbstractModifier {
         if (inputRelatedNodes.size() == 1) {
             ASTNode target = inputRelatedNodes.get(0);
             if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
-                NumberLiteral numberLiteral = (NumberLiteral) target;
                 target = target.getParent();
             }
-            SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
-            SimpleName input = ast.newSimpleName(INPUT_VAR);
             FieldAccess replace = ast.newFieldAccess();
-            replace.setName(fixture);
-            replace.setExpression(input);
+            SimpleName input = ast.newSimpleName(INPUT_VAR);
+            replace.setName(input);
+            SimpleName fixture = ast.newSimpleName(FIXTURE_NAME);
+            replace.setExpression(fixture);
             rewrite.replace(target, replace, null);
         } else {
             for (int i = 0; i < inputRelatedNodes.size(); i++) {
                 ASTNode target = inputRelatedNodes.get(i);
+                ASTNode replace;
+                QualifiedName fixtureInput = ast.newQualifiedName(ast.newSimpleName(FIXTURE_NAME), ast.newSimpleName(INPUT_VAR));
+                ArrayAccess arrayAccess = ast.newArrayAccess();
+                arrayAccess.setArray(fixtureInput);
+                arrayAccess.setIndex(ast.newNumberLiteral(String.valueOf(i)));
+                boolean isObjectArrayType = isObjectArrayType(getInputType(origin));
+                if (isObjectArrayType && isBooleanType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Boolean");
+                } else if (isObjectArrayType && isCharacterType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Character");
+                } else if (isObjectArrayType && isByteType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Byte");
+                } else if (isObjectArrayType && isShortType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Short");
+                } else if (isObjectArrayType && isIntType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Integer");
+                } else if (isObjectArrayType && isLongType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Long");
+                } else if (isObjectArrayType && isFloatType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Float");
+                } else if (isObjectArrayType && isDoubleType(target)) {
+                    replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Double");
+                } else {
+                    replace = arrayAccess;
+                }
                 if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                     target = target.getParent();
                 }
-                QualifiedName fixtureInput = ast.newQualifiedName(ast.newSimpleName(FIXTURE_NAME), ast.newSimpleName(INPUT_VAR));
-                ArrayAccess replace = ast.newArrayAccess();
-                replace.setArray(fixtureInput);
-                replace.setIndex(ast.newNumberLiteral(String.valueOf(i)));
-                rewrite.replace(target, replace, null);
                 rewrite.replace(target, replace, null);
             }
         }
@@ -723,6 +780,17 @@ public class ParameterizedModifierBase extends AbstractModifier {
         }
     }
 
+    protected void modifyConstructor(MethodDeclaration origin) {
+        TypeDeclaration modified = getTargetType();
+        for (MethodDeclaration methodDeclaration : modified.getMethods()) {
+            if (methodDeclaration.isConstructor()) {
+                Name target = methodDeclaration.getName();
+                Name replace = ast.newName(CLASS_NAME);
+                rewrite.replace(target, replace, null);
+            }
+        }
+    }
+
     /* ------------------------- For Fixture Class ----------------------- */
     protected void addFixtureClass(MethodDeclaration origin) {
         // create Fixture Class
@@ -791,5 +859,63 @@ public class ParameterizedModifierBase extends AbstractModifier {
         ListRewrite bodyRewrite = rewrite.getListRewrite(target, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
         bodyRewrite.insertLast(constructor, null);
     }
+    /* -------------------------- private method --------------------------- */
+    private boolean isObjectArrayType(Type type) {
+        if (!(type instanceof ArrayType)) {
+            return false;
+        }
+        ArrayType arrayType = (ArrayType) type;
+        if (!(arrayType.getElementType() instanceof SimpleType)) {
+            return false;
+        }
+        SimpleType simpleType = (SimpleType) arrayType.getElementType();
+        return simpleType.getName().toString().equals("Object");
+    }
 
+    private boolean isBooleanType(ASTNode node) {
+        return _isThisType(node, "boolean");
+    }
+    private boolean isCharacterType(ASTNode node) {
+        return _isThisType(node, "char");
+    }
+    private boolean isByteType(ASTNode node) {
+        return _isThisType(node, "byte");
+    }
+    private boolean isShortType(ASTNode node) {
+        return _isThisType(node, "short");
+    }
+    private boolean isIntType(ASTNode node) {
+        return _isThisType(node, "int");
+    }
+    private boolean isLongType(ASTNode node) {
+        return _isThisType(node, "long");
+    }
+    private boolean isFloatType(ASTNode node) {
+        return _isThisType(node, "float");
+    }
+    private boolean isDoubleType(ASTNode node) {
+        return _isThisType(node, "double");
+    }
+    private boolean _isThisType(ASTNode node, String type) {
+        if (!(node instanceof Expression)) {
+            return false;
+        }
+        Expression expression = (Expression) node;
+        ITypeBinding iTypeBinding = expression.resolveTypeBinding();
+        if (iTypeBinding == null) {
+            return false;
+        }
+        return iTypeBinding.isPrimitive() && iTypeBinding.toString().equals(type);
+    }
+
+    private ClassInstanceCreation _convertObjectToPrimitiveWrapper(Expression expression, String type) {
+        MethodInvocation methodInvocation = ast.newMethodInvocation();
+        methodInvocation.setExpression(expression);
+        methodInvocation.setName(ast.newSimpleName("toString"));
+        ClassInstanceCreation classInstanceCreation = ast.newClassInstanceCreation();
+        ListRewrite argsRewrite = rewrite.getListRewrite(classInstanceCreation, ClassInstanceCreation.ARGUMENTS_PROPERTY);
+        argsRewrite.insertLast(methodInvocation, null);
+        classInstanceCreation.setType(ast.newSimpleType(ast.newName(type)));
+        return classInstanceCreation;
+    }
 }
