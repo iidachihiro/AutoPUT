@@ -1,6 +1,8 @@
 package jp.mzw.autoput.experiment;
 
+import jp.mzw.autoput.ast.ASTUtils;
 import jp.mzw.autoput.core.Project;
+import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
 import jp.mzw.autoput.maven.MavenUtils;
 import jp.mzw.autoput.util.Utils;
@@ -8,8 +10,12 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.maven.shared.invoker.MavenInvocationException;
-import org.eclipse.jdt.core.dom.PackageDeclaration;
-import sun.misc.IOUtils;
+import org.eclipse.jdt.core.dom.*;
+import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
+import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.Document;
+import org.eclipse.text.edits.TextEdit;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -187,7 +193,7 @@ public class Prepare {
                 String className = record.get(0);
                 String originName = record.get(1);
                 String packageName = record.get(2);
-                Path path = getPathToFile(projectId, packageName);
+                Path path = getPathOfAutoPut(projectId, packageName);
                 beforeFilePath = path;
                 if (record.get(3).equals("true")) {
                     System.out.println("Pass Compiling: " + className + "_" + originName);
@@ -229,7 +235,7 @@ public class Prepare {
                 String className = record.get(0);
                 String originName = record.get(1);
                 String packageName = record.get(2);
-                Path path = getPathToFile(projectId, packageName);
+                Path path = getPathOfAutoPut(projectId, packageName);
                 String content = getConvertedTest(projectId, className, originName);
                 deleteFile(path);
                 createFile(path, content);
@@ -242,7 +248,19 @@ public class Prepare {
         }
     }
 
-    private static Path getPathToFile(String project, String packageName) {
+    private static Path getPathOfAutoPut(String project, String packageName) {
+        String path;
+        if (project.equals("jdom")) {
+            path = String.join("/", "subjects", project, "test", "src", "java",
+                    packageName.replace(".", "/"), "AutoPutTest.java");
+        } else {
+            path = String.join("/", "subjects", project, "src", "test", "java",
+                    packageName.replace(".", "/"), "AutoPutTest.java");
+        }
+        return Paths.get(path);
+    }
+
+    private static Path getPathOfOriginal(String project, String packageName) {
         String path;
         if (project.equals("jdom")) {
             path = String.join("/", "subjects", project, "test", "src", "java",
@@ -329,5 +347,85 @@ public class Prepare {
         } finally {
             org.apache.commons.io.IOUtils.closeQuietly(is);
         }
+    }
+
+    private static void preapreOriginal(String projectId) throws IOException {
+        List<CSVRecord> settings = getExperimentalSubjects(projectId);
+        for (CSVRecord setting : settings) {
+            List<CSVRecord> records = getDetectResults(projectId);
+            for (int i = records.size() - 1; 0 <= i; i--) {
+                String className = setting.get(0);
+                String originName = setting.get(1);
+                String packageName = setting.get(2);
+                CSVRecord record = records.get(i);
+                if (record.get(0).equals(className) && record.get(1).equals(originName)) {
+                    List<String> similarMethods = new ArrayList<>();
+                    for (int j = 2; i < record.size(); j++) {
+                        similarMethods.add(record.get(j));
+                    }
+                    Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
+                    for (TestSuite testSuite : project.getTestSuites()) {
+                        if (!testSuite.getTestClassName().equals(className)) {
+                            continue;
+                        }
+                        if (!testSuite.getCu().getPackage().getName().toString().equals(packageName)) {
+                            continue;
+                        }
+                        String content = extractOriginalMethods(testSuite, similarMethods);
+                        Path path = getPathOfOriginal(projectId, packageName);
+                        createFile(path, content);
+                    }
+                }
+            }
+        }
+    }
+
+    private static String extractOriginalMethods(TestSuite testSuite, List<String> similarMethods) {
+        CompilationUnit cu = testSuite.getCu();
+        AST ast = cu.getAST();
+        ASTRewrite rewrite = ASTRewrite.create(ast);
+        // deleteする
+        TypeDeclaration clazz = null;
+        for (AbstractTypeDeclaration abstType : (List<AbstractTypeDeclaration>) cu.types()) {
+            if (abstType instanceof TypeDeclaration) {
+                TypeDeclaration type = (TypeDeclaration) abstType;
+                if (type.getName().getIdentifier().equals(testSuite.getTestClassName())) {
+                    clazz = type;
+                }
+            }
+        }
+        String typeName = clazz.getName().getIdentifier();
+        List<Name> names = ASTUtils.getAllNames(clazz);
+        for (Name name : names) {
+            if (name.toString().equals(typeName)) {
+                Name replace = ast.newName("OriginalTest");
+                rewrite.replace(name, replace, null);
+            }
+        }
+        ListRewrite listRewrite = rewrite.getListRewrite(clazz, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+        for (TestCase testCase : testSuite.getTestCases()) {
+            MethodDeclaration methodDeclaration = testCase.getMethodDeclaration();
+            if (ASTUtils.hasPrivateModifier(methodDeclaration.modifiers())) {
+                continue;
+            }
+            for (String similarMethod : similarMethods) {
+                if (methodDeclaration.getName().getIdentifier().equals(similarMethod)) {
+                    continue;
+                }
+            }
+            listRewrite.remove(methodDeclaration, null);
+        }
+        // modify
+        try {
+            Document document = new Document(testSuite.getTestSources());
+            TextEdit edit = rewrite.rewriteAST(document, null);
+            edit.apply(document);
+            return document.get();
+        } catch (IOException | BadLocationException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }

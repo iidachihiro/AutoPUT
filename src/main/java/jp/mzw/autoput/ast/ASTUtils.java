@@ -400,6 +400,17 @@ public class ASTUtils {
         }
         return false;
     }
+    public static boolean hasPrivateModifier(List<IExtendedModifier> modifiers) {
+        for (IExtendedModifier iExtendedModifier : modifiers) {
+            if (iExtendedModifier.isModifier()) {
+                Modifier modifier = (Modifier) iExtendedModifier;
+                if (modifier.isPrivate()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     public static boolean hasTestAnnotation(List<IExtendedModifier> modifiers) {
         for (IExtendedModifier iExtendedModifier : modifiers) {
             if (iExtendedModifier.isAnnotation()) {
