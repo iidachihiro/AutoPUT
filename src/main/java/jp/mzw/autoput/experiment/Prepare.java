@@ -182,18 +182,27 @@ public class Prepare {
                     String className = record.get(0);
                     String originName = record.get(1);
                     String packageName = record.get(2);
+                    if (record.get(3).equals("true")) {
+                        System.out.println("Pass Compiling: " + className + "_" + originName);
+                        continue;
+                    }
                     String content = getConvertedTest(projectId, className, originName);
                     Path path = getPathToFile(projectId, packageName);
+                    deleteFile(path);
                     createFile(path, content);
                     File subject = project.getProjectDir();
                     File mavenHome = project.getMavenHome();
                     try {
-                        MavenUtils.testCompile(subject, mavenHome, className + "_" + originName);
+                        System.out.println("Compile: " + className + "_" + originName);
+                        int result = MavenUtils.testCompile(subject, mavenHome, className + "_" + originName);
+                        if (result != 0) {
+                            // build failure
+                            return;
+                        }
                     } catch (MavenInvocationException e) {
                         e.printStackTrace();
-                    }  finally {
-                        deleteFile(path);
                     }
+                    deleteFile(path);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
