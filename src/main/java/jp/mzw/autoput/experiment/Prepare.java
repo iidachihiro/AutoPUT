@@ -3,16 +3,15 @@ package jp.mzw.autoput.experiment;
 import jp.mzw.autoput.core.Project;
 import jp.mzw.autoput.core.TestSuite;
 import jp.mzw.autoput.maven.MavenUtils;
+import jp.mzw.autoput.util.Utils;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
+import sun.misc.IOUtils;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Created by TK on 9/1/17.
@@ -194,14 +195,13 @@ public class Prepare {
                 }
                 String content = getConvertedTest(projectId, className, originName);
 
-
                 deleteFile(path);
                 createFile(path, content);
                 File subject = project.getProjectDir();
                 File mavenHome = project.getMavenHome();
                 try {
                     System.out.println("Compile: " + className + "_" + originName);
-                    int result = MavenUtils.testCompile(subject, mavenHome, className + "_" + originName);
+                    int result = MavenUtils.testCompile(projectId, subject, mavenHome, className + "_" + originName);
                     if (result != 0) {
                         // build failure
                         return;
@@ -209,6 +209,32 @@ public class Prepare {
                 } catch (MavenInvocationException e) {
                     e.printStackTrace();
                 }
+                deleteFile(path);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void prepareForAutoPut(String projectId) {
+        System.out.println("Project: " + projectId);
+        try {
+            Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
+            List<CSVRecord> records = getExperimentalSubjects(projectId);
+            Path beforeFilePath = null;
+            for (CSVRecord record : records) {
+                if (beforeFilePath != null) {
+                    deleteFile(beforeFilePath);
+                }
+                String className = record.get(0);
+                String originName = record.get(1);
+                String packageName = record.get(2);
+                Path path = getPathToFile(projectId, packageName);
+                String content = getConvertedTest(projectId, className, originName);
+                deleteFile(path);
+                createFile(path, content);
+                File subject = project.getProjectDir();
+                File mavenHome = project.getMavenHome();
                 deleteFile(path);
             }
         } catch (IOException e) {
@@ -270,6 +296,38 @@ public class Prepare {
             Files.deleteIfExists(path);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void createZip(Project project, int subjectNum, int testNum, String mode) {
+        List<File> files = new ArrayList<File>();
+        files.addAll(Utils.getFiles(project.getProjectDir()));
+        ZipOutputStream zos = null;
+        try {
+            zos = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(
+                    new File(project.getProjectId() + "_subject" + subjectNum + "-" + testNum + "_" + mode + ".zip"))));
+            createZip(zos, files);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void createZip(ZipOutputStream zos, List<File> files) throws IOException {
+        byte[] buf = new byte[1024];
+        InputStream is = null;
+        try {
+            for (File file : files) {
+                ZipEntry entry = new ZipEntry(file.getName());
+                zos.putNextEntry(entry);
+                is = new BufferedInputStream(new FileInputStream(file));
+                int len = 0;
+                while((len = is.read(buf)) != -1) {
+                    zos.write(buf, 0, len);
+                }
+                org.apache.commons.io.IOUtils.closeQuietly(is);
+            }
+        } finally {
+            org.apache.commons.io.IOUtils.closeQuietly(is);
         }
     }
 }
