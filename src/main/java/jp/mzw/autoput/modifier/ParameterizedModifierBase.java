@@ -536,6 +536,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
                     replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Float");
                 } else if (isObjectArrayType && isDoubleType(target)) {
                     replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Double");
+                } else if (isObjectArrayType && canBeCasted(target)) {
+                    replace = _castObject(arrayAccess, target);
                 } else {
                     replace = arrayAccess;
                 }
@@ -582,6 +584,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
                     replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Float");
                 } else if (isObjectArrayType && isDoubleType(target)) {
                     replace = _convertObjectToPrimitiveWrapper(arrayAccess, "Double");
+                } else if (isObjectArrayType && canBeCasted(target)) {
+                    replace = _castObject(arrayAccess, target);
                 } else {
                     replace = arrayAccess;
                 }
@@ -596,7 +600,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
     }
 
     protected Type getInputType(MethodDeclaration origin) {
-        List<ASTNode> mostDifferentNodes = null;
+        List<ASTNode> mostDifferentNodesInOrigin = null;
+        List<ASTNode> mostDifferentNodesFromAnother = null;
         // 共通部分が一番少ないメソッドを探す
         for (TestCase testCase : testSuite.getTestCases()) {
             MethodDeclaration method = testCase.getMethodDeclaration();
@@ -604,62 +609,46 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 continue;
             }
             if (similarAST(origin, method)) {
-                if (mostDifferentNodes == null) {
-                    mostDifferentNodes = ASTUtils.getDifferentNodes(method, origin);
-                } else if (mostDifferentNodes.size() < ASTUtils.getDifferentNodes(origin, method).size()) {
-                    mostDifferentNodes = ASTUtils.getDifferentNodes(method, origin);
+                if (mostDifferentNodesInOrigin == null) {
+                    mostDifferentNodesInOrigin = ASTUtils.getDifferentNodes(method, origin);
+                } else if (mostDifferentNodesInOrigin.size() < ASTUtils.getDifferentNodes(origin, method).size()) {
+                    mostDifferentNodesInOrigin = ASTUtils.getDifferentNodes(method, origin);
+                    mostDifferentNodesFromAnother = ASTUtils.getDifferentNodes(origin, method);
                 }
             }
         }
         // commonじゃないnodeからinputを抽出する
-        List<ASTNode> inputRelatedNodes = new ArrayList<>();
-        for (ASTNode node : mostDifferentNodes) {
+        List<ASTNode> inputRelatedNodesInOrigin = new ArrayList<>();
+        for (ASTNode node : mostDifferentNodesInOrigin) {
             if (!isInExpectedDeclaringNode(origin, node)) {
-                inputRelatedNodes.add(node);
+                inputRelatedNodesInOrigin.add(node);
             }
         }
         Type ret;
-        if (1 < inputRelatedNodes.size()) {
-            ret = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
-            if (ASTUtils.allStringType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newSimpleType(ast.newName("String")));
-            } else if (ASTUtils.allDoubleType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.DOUBLE));
-            } else if (ASTUtils.allFloatType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.FLOAT));
-            } else if (ASTUtils.allLongType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.LONG));
-            } else if (ASTUtils.allIntType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.INT));
-            } else if (ASTUtils.allShortType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.SHORT));
-            } else if (ASTUtils.allByteType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BYTE));
-            } else if (ASTUtils.allCharacterType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.CHAR));
-            } else if (ASTUtils.allBooleanType(inputRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BOOLEAN));
-            }
-        } else {
-            ret = ast.newSimpleType(ast.newName("Object"));
-            if (ASTUtils.allStringType(inputRelatedNodes)) {
-                ret = ast.newSimpleType(ast.newName("String"));
-            } else if (ASTUtils.allDoubleType(inputRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
-            } else if (ASTUtils.allFloatType(inputRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.FLOAT);
-            } else if (ASTUtils.allLongType(inputRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.LONG);
-            } else if (ASTUtils.allIntType(inputRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.INT);
-            } else if (ASTUtils.allShortType(inputRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.SHORT);
-            } else if (ASTUtils.allByteType(inputRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.BYTE);
-            } else if (ASTUtils.allCharacterType(inputRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.CHAR);
-            } else if (ASTUtils.allBooleanType(inputRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.BOOLEAN);
+        Type commonTypeInOrigin = _getCommonType(inputRelatedNodesInOrigin);
+        ret = commonTypeInOrigin;
+        if (commonTypeInOrigin instanceof ArrayType) {
+            ArrayType arrayType = (ArrayType) commonTypeInOrigin;
+            if (arrayType.getElementType() instanceof PrimitiveType) {
+                PrimitiveType primitiveType = (PrimitiveType) arrayType.getElementType();
+                if (primitiveType.getPrimitiveTypeCode() == PrimitiveType.INT) {
+                    List<ASTNode> inputRelatedNodesFromAnother = new ArrayList<>();
+                    for (ASTNode node : mostDifferentNodesFromAnother) {
+                        if (!isInExpectedDeclaringNode(origin, node)) {
+                            inputRelatedNodesFromAnother.add(node);
+                        }
+                    }
+                    Type commonTypeFromAother = _getCommonType(inputRelatedNodesFromAnother);
+                    if (commonTypeFromAother instanceof ArrayType) {
+                        ArrayType arrayType1 = (ArrayType) commonTypeFromAother;
+                        if (arrayType1.getElementType() instanceof PrimitiveType) {
+                            PrimitiveType primitiveType1 = (PrimitiveType) arrayType1.getElementType();
+                            if (primitiveType1.getPrimitiveTypeCode() == PrimitiveType.DOUBLE) {
+                                ret = commonTypeFromAother;
+                            }
+                        }
+                    }
+                }
             }
         }
         return ret;
@@ -693,18 +682,18 @@ public class ParameterizedModifierBase extends AbstractModifier {
             ret = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
             if (ASTUtils.allStringType(expectedRelatedNodes)) {
                 ret = ast.newArrayType(ast.newSimpleType(ast.newName("String")));
-            } else if (ASTUtils.allDoubleType(expectedRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.DOUBLE));
-            } else if (ASTUtils.allFloatType(expectedRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.FLOAT));
-            } else if (ASTUtils.allLongType(expectedRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.LONG));
-            } else if (ASTUtils.allIntType(expectedRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.INT));
-            } else if (ASTUtils.allShortType(expectedRelatedNodes)) {
-                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.SHORT));
             } else if (ASTUtils.allByteType(expectedRelatedNodes)) {
                 ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BYTE));
+            } else if (ASTUtils.allShortType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.SHORT));
+            } else if (ASTUtils.allIntType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.INT));
+            } else if (ASTUtils.allLongType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.LONG));
+            } else if (ASTUtils.allFloatType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.FLOAT));
+            } else if (ASTUtils.allDoubleType(expectedRelatedNodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.DOUBLE));
             } else if (ASTUtils.allCharacterType(expectedRelatedNodes)) {
                 ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.CHAR));
             } else if (ASTUtils.allBooleanType(expectedRelatedNodes)) {
@@ -714,18 +703,18 @@ public class ParameterizedModifierBase extends AbstractModifier {
             ret = ast.newSimpleType(ast.newName("Object"));
             if (ASTUtils.allStringType(expectedRelatedNodes)) {
                 ret = ast.newSimpleType(ast.newName("String"));
-            } else if (ASTUtils.allDoubleType(expectedRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
-            } else if (ASTUtils.allFloatType(expectedRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.FLOAT);
-            } else if (ASTUtils.allLongType(expectedRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.LONG);
-            } else if (ASTUtils.allIntType(expectedRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.INT);
-            } else if (ASTUtils.allShortType(expectedRelatedNodes)) {
-                ret = ast.newPrimitiveType(PrimitiveType.SHORT);
             } else if (ASTUtils.allByteType(expectedRelatedNodes)) {
                 ret = ast.newPrimitiveType(PrimitiveType.BYTE);
+            } else if (ASTUtils.allShortType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.SHORT);
+            } else if (ASTUtils.allIntType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.INT);
+            } else if (ASTUtils.allLongType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.LONG);
+            } else if (ASTUtils.allFloatType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.FLOAT);
+            } else if (ASTUtils.allDoubleType(expectedRelatedNodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
             } else if (ASTUtils.allCharacterType(expectedRelatedNodes)) {
                 ret = ast.newPrimitiveType(PrimitiveType.CHAR);
             } else if (ASTUtils.allBooleanType(expectedRelatedNodes)) {
@@ -872,6 +861,18 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return simpleType.getName().toString().equals("Object");
     }
 
+    private boolean isDoubleArrayType(Type type) {
+        if (!(type instanceof ArrayType)) {
+            return false;
+        }
+        ArrayType arrayType = (ArrayType) type;
+        if (!(arrayType.getElementType() instanceof PrimitiveType)) {
+            return false;
+        }
+        PrimitiveType primitiveType = (PrimitiveType) arrayType.getElementType();
+        return primitiveType.getPrimitiveTypeCode().equals(PrimitiveType.DOUBLE);
+    }
+
     private boolean isBooleanType(ASTNode node) {
         return _isThisType(node, "boolean");
     }
@@ -918,4 +919,82 @@ public class ParameterizedModifierBase extends AbstractModifier {
         classInstanceCreation.setType(ast.newSimpleType(ast.newName(type)));
         return classInstanceCreation;
     }
+
+    private boolean canBeCasted(ASTNode node) {
+        if (!(node instanceof Expression)) {
+            return false;
+        }
+        Expression expression = (Expression) node;
+        ITypeBinding iTypeBinding = expression.resolveTypeBinding();
+
+        if (iTypeBinding == null) {
+            return false;
+        }
+        return !iTypeBinding.isPrimitive();
+    }
+    private CastExpression _castObject(Expression expression, ASTNode target) {
+        CastExpression castExpression = ast.newCastExpression();
+        castExpression.setExpression(expression);
+        ITypeBinding iTypeBinding = ((Expression) target).resolveTypeBinding();
+        Type castType = ast.newSimpleType(ast.newName(iTypeBinding.getName()));
+        castExpression.setType(castType);
+        return castExpression;
+    }
+
+    private CastExpression _castInt(Expression expression, ASTNode target) {
+        CastExpression castExpression = ast.newCastExpression();
+        castExpression.setExpression(expression);
+        Type castType = ast.newPrimitiveType(PrimitiveType.INT);
+        castExpression.setType(castType);
+        return castExpression;
+    }
+
+    private Type _getCommonType(List<ASTNode> nodes) {
+        Type ret;
+        if (1 < nodes.size()) {
+            ret = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
+            if (ASTUtils.allStringType(nodes)) {
+                ret = ast.newArrayType(ast.newSimpleType(ast.newName("String")));
+            } else if (ASTUtils.allByteType(nodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BYTE));
+            } else if (ASTUtils.allShortType(nodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.SHORT));
+            } else if (ASTUtils.allIntType(nodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.INT));
+            } else if (ASTUtils.allLongType(nodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.LONG));
+            } else if (ASTUtils.allFloatType(nodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.FLOAT));
+            } else if (ASTUtils.allDoubleType(nodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.DOUBLE));
+            } else if (ASTUtils.allCharacterType(nodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.CHAR));
+            } else if (ASTUtils.allBooleanType(nodes)) {
+                ret = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.BOOLEAN));
+            }
+        } else {
+            ret = ast.newSimpleType(ast.newName("Object"));
+            if (ASTUtils.allStringType(nodes)) {
+                ret = ast.newSimpleType(ast.newName("String"));
+            } else if (ASTUtils.allByteType(nodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.BYTE);
+            } else if (ASTUtils.allShortType(nodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.SHORT);
+            } else if (ASTUtils.allIntType(nodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.INT);
+            } else if (ASTUtils.allLongType(nodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.LONG);
+            } else if (ASTUtils.allFloatType(nodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.FLOAT);
+            } else if (ASTUtils.allDoubleType(nodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.DOUBLE);
+            } else if (ASTUtils.allCharacterType(nodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.CHAR);
+            } else if (ASTUtils.allBooleanType(nodes)) {
+                ret = ast.newPrimitiveType(PrimitiveType.BOOLEAN);
+            }
+        }
+        return ret;
+    }
+
 }

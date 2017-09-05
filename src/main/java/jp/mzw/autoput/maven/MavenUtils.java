@@ -12,7 +12,7 @@ public class MavenUtils {
 
     public static final String FILENAME_POM = "pom.xml";
 
-    public static int testCompile(File subject, File mavenHome, String autoPutTest) throws MavenInvocationException {
+    public static int testCompile(String project, File subject, File mavenHome, String autoPutTest) throws MavenInvocationException {
         InvocationRequest request = new DefaultInvocationRequest();
         request.setPomFile(new File(subject, FILENAME_POM));
         request.setGoals(Arrays.asList("test-compile"));
