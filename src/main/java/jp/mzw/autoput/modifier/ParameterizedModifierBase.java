@@ -4,6 +4,7 @@ import jp.mzw.autoput.ast.ASTUtils;
 import jp.mzw.autoput.core.Project;
 import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
+import jp.mzw.autoput.experiment.ExperimentUtils;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
@@ -67,6 +68,49 @@ public class ParameterizedModifierBase extends AbstractModifier {
         }
     }
 
+    public String experimentalModify(MethodDeclaration method, String subjectId, String testId, String mode) {
+        String clazzName = ExperimentUtils.getSubjectName(subjectId, testId, mode);
+        cu = getCompilationUnit();
+        ast = cu.getAST();
+        String methodName = method.getName().getIdentifier();
+        System.out.println(methodName);
+        rewrite = ASTRewrite.create(ast);
+        if (mode.equals("AutoPut")) {
+            // テストメソッドを作成(既存のテストメソッドを修正する)
+            modifyTestMethod(method);
+            // data-pointsを作成
+            createDataPoints(method);
+            // import文を追加
+            addImportDeclarations();
+            // Fixtureクラスを追加
+            addFixtureClass(method);
+            // クラスに修飾子も追加
+            modifyClassInfo(clazzName);
+        }
+        // 既存のテストメソッドを全て削除(コンストラクタと@Testのないものは残る)
+        deleteOtherTestMethods(method);
+        // コンストラクタ名を修正
+        modifyConstructor(method, clazzName);
+        // クラス内に出てくるクラス名をすべて変更
+        modifyClassName(clazzName);
+        // modify
+        try {
+            Document document = new Document(testSuite.getTestSources());
+            TextEdit edit = rewrite.rewriteAST(document, null);
+            edit.apply(document);
+            return document.get();
+        } catch (IOException | BadLocationException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            LOGGER.error("{}: {} at {}", e.getClass(), e.getMessage(), methodName);
+        }
+        // initialize
+        this.cu = null;
+        this.ast = null;
+        this.rewrite = null;
+        return "";
+    }
+
     @Override
     public void modify(MethodDeclaration method) {
         cu = getCompilationUnit();
@@ -81,15 +125,15 @@ public class ParameterizedModifierBase extends AbstractModifier {
         // 既存のテストメソッドを全て削除(コンストラクタと@Testのないものは残る)
         deleteOtherTestMethods(method);
         // コンストラクタ名を修正
-        modifyConstructor(method);
+        modifyConstructor(method, CLASS_NAME);
         // import文を追加
         addImportDeclarations();
         // Fixtureクラスを追加
         addFixtureClass(method);
-        // クラス名を変更，修飾子も追加
-        modifyClassInfo();
+        // クラスに修飾子も追加
+        modifyClassInfo(CLASS_NAME);
         // クラス内に出てくるクラス名をすべて変更
-        modifyClassName();
+        modifyClassName(CLASS_NAME);
         // modify
         try {
             Document document = new Document(testSuite.getTestSources());
@@ -126,28 +170,26 @@ public class ParameterizedModifierBase extends AbstractModifier {
         listRewrite.insertLast(datapoints, null);
     }
 
-    protected void modifyClassName() {
+    protected void modifyClassName(String clazzName) {
         TypeDeclaration modified = getTargetType();
         String typeName = modified.getName().getIdentifier();
         List<Name> names = ASTUtils.getAllNames(modified);
         for (Name name : names) {
             if (name.toString().equals(typeName)) {
-                Name replace = ast.newName(CLASS_NAME);
+                Name replace = ast.newName(clazzName);
                 rewrite.replace(name, replace, null);
             }
         }
     }
 
 
-    protected void modifyClassInfo() {
+    protected void modifyClassInfo(String clazzName) {
         TypeDeclaration modified = getTargetType();
         // 修飾子を変更
         ListRewrite modifiersListRewrite = rewrite.getListRewrite(modified, TypeDeclaration.MODIFIERS2_PROPERTY);
         // RunWithアノテーションを付与
         SingleMemberAnnotation annotation = ASTUtils.getRunWithAnnotation(ast);
         modifiersListRewrite.insertLast(annotation, null);
-        // クラス名を変更
-        rewrite.replace(modified.getName(), ast.newName(CLASS_NAME), null);
     }
 
 
@@ -786,15 +828,18 @@ public class ParameterizedModifierBase extends AbstractModifier {
             if (ASTUtils.hasTestAnnotation(methodDeclaration.modifiers())) {
                 listRewrite.remove(methodDeclaration, null);
             }
+            if (ASTUtils.hasPublicModifier(methodDeclaration.modifiers()) && methodDeclaration.getName().getIdentifier().startsWith("test")) {
+                listRewrite.remove(methodDeclaration, null);
+            }
         }
     }
 
-    protected void modifyConstructor(MethodDeclaration origin) {
+    protected void modifyConstructor(MethodDeclaration origin, String clazzName) {
         TypeDeclaration modified = getTargetType();
         for (MethodDeclaration methodDeclaration : modified.getMethods()) {
             if (methodDeclaration.isConstructor()) {
                 Name target = methodDeclaration.getName();
-                Name replace = ast.newName(CLASS_NAME);
+                Name replace = ast.newName(clazzName);
                 rewrite.replace(target, replace, null);
             }
         }

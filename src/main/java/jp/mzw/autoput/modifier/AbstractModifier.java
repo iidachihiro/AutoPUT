@@ -4,6 +4,8 @@ import jp.mzw.autoput.ast.ASTUtils;
 import jp.mzw.autoput.core.Project;
 import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
+import jp.mzw.autoput.experiment.ExperimentUtils;
+import jp.mzw.autoput.experiment.Prepare;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -94,6 +96,45 @@ public abstract class AbstractModifier {
             }
         }
     }
+    public void experiment() {
+        // DETECT_RESULTを読み込む
+        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
+        // modifyしていく
+        for (CSVRecord record : records) {
+            String subjectId = record.get(0);
+            String testId = record.get(1);
+            String className = record.get(2);
+            String originName = record.get(3);
+            String packageName = record.get(4);
+            // For AutoPut
+            createSubjectFile(project, subjectId, testId, className, originName, packageName, "AutoPut");
+            // For Original
+            createSubjectFile(project, subjectId, testId, className, originName, packageName, "Origin");
+        }
+    }
+
+    private void createSubjectFile(Project project, String subjectId, String testId, String className, String oririnName, String packageName, String mode) {
+        ExperimentUtils.createSubjectFileDirs(project.getProjectId(), subjectId, testId, mode);
+        for (TestSuite testSuite : getTestSuites()) {
+            if (!testSuite.getTestClassName().equals(className)) {
+                continue;
+            }
+            if (!testSuite.getCu().getPackage().getName().toString().equals(packageName)) {
+                continue;
+            }
+            for (TestCase testCase : testSuite.getTestCases()) {
+                if (testCase.getName().equals(oririnName)) {
+                    try {
+                        String content = new ParameterizedModifierBase(project, testSuite).experimentalModify(testCase.getMethodDeclaration(), subjectId, testId, mode);
+                        ExperimentUtils.outputConvertResult(project.getProjectId(), subjectId, testId, mode, content);
+                    } catch (NullPointerException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
 
     private List<CSVRecord> _getDetectResults() {
         List<CSVRecord> ret = new ArrayList<>();
@@ -105,7 +146,6 @@ public abstract class AbstractModifier {
         }
         return ret;
     }
-
 
 
     public void detect() {

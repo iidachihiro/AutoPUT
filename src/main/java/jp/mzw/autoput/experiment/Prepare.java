@@ -272,7 +272,7 @@ public class Prepare {
         return Paths.get(path);
     }
 
-    private static List<CSVRecord> getExperimentalSubjects(String project) {
+    public static List<CSVRecord> getExperimentalSubjects(String project) {
         List<CSVRecord> records = new ArrayList<>();
         try (BufferedReader br = Files.newBufferedReader(Paths.get(getExperimentalSubjectFile(project)), StandardCharsets.UTF_8)) {
             CSVParser parser = CSVFormat.DEFAULT.parse(br);

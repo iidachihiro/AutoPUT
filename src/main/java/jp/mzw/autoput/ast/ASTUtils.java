@@ -411,6 +411,17 @@ public class ASTUtils {
         }
         return false;
     }
+    public static boolean hasPublicModifier(List<IExtendedModifier> modifiers) {
+        for (IExtendedModifier iExtendedModifier : modifiers) {
+            if (iExtendedModifier.isModifier()) {
+                Modifier modifier = (Modifier) iExtendedModifier;
+                if (modifier.isPublic()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     public static boolean hasTestAnnotation(List<IExtendedModifier> modifiers) {
         for (IExtendedModifier iExtendedModifier : modifiers) {
             if (iExtendedModifier.isAnnotation()) {

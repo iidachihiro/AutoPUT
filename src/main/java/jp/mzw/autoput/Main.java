@@ -27,6 +27,8 @@ public class Main {
             parameterizedModifier.detect();
         } else if (command.equals("convert")) {
             parameterizedModifier.modify();
+        } else if (command.equals("experiment")) {
+            parameterizedModifier.experiment();
         } else {
             System.out.println("Wrong Command!");
         }
