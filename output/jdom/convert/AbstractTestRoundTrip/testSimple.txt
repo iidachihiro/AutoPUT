@@ -1,0 +1,79 @@
+package org.jdom2.test.cases.output;
+
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+
+import org.junit.Test;
+
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.XMLOutputter;
+import org.jdom2.test.util.FidoFetch;
+import org.jdom2.test.util.UnitTestUtil;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+@SuppressWarnings("javadoc")
+public abstract @RunWith(Theories.class) class AutoPutTest {
+
+	abstract Document roundTrip(Document doc);
+	
+	abstract Document prepare(Document doc);
+	
+	private final void checkRoundTrip(final Document indoc) {
+		final Document doc = prepare(indoc);
+		final Document rtdoc = roundTrip(doc);
+		assertTrue(rtdoc != null);
+		try {
+			XMLOutputter xout = new XMLOutputter();
+			System.out.println("Compare from:\n");
+			xout.output(doc, System.out);
+			System.out.println("Compare to:\n");
+			xout.output(rtdoc, System.out);
+			System.out.println("\n\n");
+		} catch (IOException ioe) {
+			// swallow
+		}
+		UnitTestUtil.compare(doc,  rtdoc);
+	}
+	
+	@Theory
+	public void autoPutTest(Fixture fixture) throws JDOMException, IOException {
+		final SAXBuilder sb = new SAXBuilder();
+		
+		final Document doc = sb.build(FidoFetch.getFido().getURL(fixture._input));
+		doc.setBaseURI(null);
+		checkRoundTrip(doc);
+	}
+
+	private static String INPUT1 = "/DOMBuilder/simple.xml";
+
+	private static Object EXPECTED1 = null;
+
+	private static String INPUT2 = "/DOMBuilder/namespaces.xml";
+
+	private static Object EXPECTED2 = null;
+
+	private static String INPUT3 = "/DOMBuilder/complex.xml";
+
+	private static Object EXPECTED3 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3)};
+
+	public static class Fixture {
+		private String _input;
+		private Object _expected;
+
+		public Fixture(String _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+	
+}

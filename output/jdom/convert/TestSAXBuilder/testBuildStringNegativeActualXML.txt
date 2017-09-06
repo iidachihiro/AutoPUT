@@ -1,0 +1,345 @@
+/*--
+ 
+Copyright (C) 2000 Brett McLaughlin & Jason Hunter.
+ All rights reserved.
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions, and the following disclaimer.
+
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions, and the disclaimer that follows
+    these conditions in the documentation and/or other materials
+    provided with the distribution.
+
+ 3. The name "JDOM" must not be used to endorse or promote products
+    derived from this software without prior written permission.  For
+    written permission, please contact license@jdom.org.
+
+ 4. Products derived from this software may not be called "JDOM", nor
+    may "JDOM" appear in their name, without prior written permission
+    from the JDOM Project Management (pm@jdom.org).
+
+ In addition, we request (but do not require) that you include in the
+ end-user documentation provided with the redistribution and/or in the
+ software itself an acknowledgement equivalent to the following:
+     "This product includes software developed by the
+      JDOM Project (http://www.jdom.org/)."
+ Alternatively, the acknowledgment may be graphical using the logos
+ available at http://www.jdom.org/images/logos.
+
+ THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+ WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED.  IN NO EVENT SHALL THE JDOM AUTHORS OR THE PROJECT
+ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ SUCH DAMAGE.
+
+ This software consists of voluntary contributions made by many
+ individuals on behalf of the JDOM Project and was originally
+ created by Brett McLaughlin <brett@jdom.org> and
+ Jason Hunter <jhunter@jdom.org>.  For more information on the
+ JDOM Project, please see <http://www.jdom.org/>.
+
+ */
+
+
+package org.jdom2.test.cases.input;
+
+/**
+ * Tests of SAXBuilder functionality.  Since most of these methods are tested in other parts
+ * of the test suite, many tests are not filled.
+ * 
+ * @author Philip Nelson
+ * @version 0.5
+ */
+import static org.jdom2.test.util.UnitTestUtil.checkException;
+import static org.jdom2.test.util.UnitTestUtil.failNoException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
+import java.io.CharArrayWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.CharBuffer;
+import java.util.Arrays;
+import java.util.List;
+
+import org.junit.Ignore;
+import org.junit.Test;
+import org.xml.sax.Attributes;
+import org.xml.sax.DTDHandler;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLFilter;
+import org.xml.sax.XMLReader;
+import org.xml.sax.ext.LexicalHandler;
+import org.xml.sax.helpers.XMLFilterImpl;
+
+import org.jdom2.Content;
+import org.jdom2.DefaultJDOMFactory;
+import org.jdom2.Document;
+import org.jdom2.EntityRef;
+import org.jdom2.JDOMException;
+import org.jdom2.JDOMFactory;
+import org.jdom2.UncheckedJDOMFactory;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.input.sax.BuilderErrorHandler;
+import org.jdom2.input.sax.SAXEngine;
+import org.jdom2.input.sax.SAXHandler;
+import org.jdom2.input.sax.SAXHandlerFactory;
+import org.jdom2.input.sax.XMLReaderJDOMFactory;
+import org.jdom2.input.sax.XMLReaderSAX2Factory;
+import org.jdom2.input.sax.XMLReaders;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+import org.jdom2.test.util.FidoFetch;
+import org.jdom2.test.util.UnitTestUtil;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+
+@SuppressWarnings("javadoc")
+public final @RunWith(Theories.class) class AutoPutTest {
+	
+	private static final String testxml = "<?xml version=\"1.0\"?><root/>";
+	private static final String testpattern = "\\s*<\\?xml\\s+version=\"1.0\"\\s+encoding=\"UTF-8\"\\s*\\?>\\s*<root\\s*/>\\s*";
+
+	private class MySAXBuilder extends SAXBuilder {
+		public MySAXBuilder() {
+			super();
+		}
+		
+		@SuppressWarnings("deprecation")
+		public MySAXBuilder(String driver) {
+			super(driver);
+		}
+		
+		public MySAXBuilder(XMLReaderJDOMFactory fac) {
+			super(fac);
+		}
+		
+		/**
+		 * This sets and configures the parser (SAXBuilder just sets).
+		 */
+		@Override
+		public XMLReader createParser() throws JDOMException {
+			XMLReader reader = super.createParser();
+			configureParser(reader, new SAXHandler());
+			return reader;
+		}
+	}
+	
+	private void assertXMLMatches(String baseuri, Document doc) {
+		XMLOutputter out = new XMLOutputter(Format.getCompactFormat());
+		try {
+			CharArrayWriter caw = new CharArrayWriter();
+			out.output(doc, caw);
+			String output = caw.toString();
+			if (!output.matches(testpattern)) {
+				fail ("Failed to match output:\n  " + output + "\nwith pattern:\n  " + testpattern);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			UnitTestUtil.failException("Failed to write Document " + doc + " to CharArrayWriter.", e);
+		}
+		if (baseuri == null) {
+			assertNull(doc.getBaseURI());
+		} else {
+			if (!baseuri.equals(doc.getBaseURI())) {
+				try {
+					final String moduri = baseuri.replaceFirst(":/", ":///");
+					if (!moduri.equals(doc.getBaseURI())) {
+						final String fileuri = new File(baseuri).toURI().toURL().toExternalForm();
+						if (!fileuri.equals(doc.getBaseURI())) {
+							final String modfileuri = fileuri.replaceFirst(":/", ":///");
+							if (!modfileuri.equals(doc.getBaseURI())) {
+								fail("Base URI " + doc.getBaseURI() + " is not one of " +
+										Arrays.toString(new String[]{baseuri, moduri, fileuri, modfileuri}));
+							}
+						}
+					}
+				} catch (MalformedURLException mue) {
+					UnitTestUtil.failException("Could not create File URL", mue);
+				}
+			}
+		}
+	}
+	
+	@Theory
+	public void autoPutTest(Fixture fixture) {
+		SAXBuilder sb = new SAXBuilder();
+		try {
+			sb.build(fixture._input);
+			failNoException(IOException.class);
+		} catch (Exception e) {
+			checkException(IOException.class, e);
+			// cause should also be a MalformedURLException
+			checkException(IOException.class, e.getCause());
+		}
+	}
+	
+	@SuppressWarnings("deprecation")
+	private void loopParser(boolean reuse, boolean fast) throws JDOMException, IOException {
+		if (fast) {
+			System.out.println("Fast no longer means anything.");
+		}
+		SAXBuilder builderval = new SAXBuilder(true);
+		SAXBuilder buildernoval = new SAXBuilder(false);
+		builderval.setReuseParser(reuse);
+		buildernoval.setReuseParser(reuse);
+		String docstr = 
+				"<?xml version='1.0'?><!DOCTYPE root [  <!ELEMENT root  (#PCDATA)>]><root />";
+		char[] chars = docstr.toCharArray();
+		ResetReader rr = new ResetReader(chars);
+		for (int i = 0; i < 10000; i++) {
+			parseMem(builderval, rr);
+			parseMem(buildernoval, rr);
+		}
+		//JAXPFastParserFactory.printTimes();
+	}
+	
+	private void parseMem(SAXBuilder builder, ResetReader reader) throws JDOMException, IOException {
+		reader.reset();
+		Document doc = builder.build(reader);
+		assertTrue(doc.hasRootElement());
+		assertEquals("root", doc.getRootElement().getName());
+	}
+	
+	private static final class ResetReader extends Reader {
+		
+		private final char[] chars;
+		private int pos = 0;
+		
+		public ResetReader(final char[] ch) {
+			chars = ch;
+		}
+
+		@Override
+		public int read(final CharBuffer target) throws IOException {
+			final int got = chars.length - pos;
+			if (got == 0) {
+				return -1;
+			}
+			final int howmuch = target.remaining();
+			final int ret = got > howmuch ? howmuch : got;
+			target.put(chars, pos, ret);
+			pos += ret;
+			return ret;
+		}
+
+		@Override
+		public int read() throws IOException {
+			if (pos >= chars.length) {
+				return -1;
+			}
+			return chars[pos++];
+		}
+
+		@Override
+		public int read(final char[] cbuf) throws IOException {
+			final int got = chars.length - pos;
+			if (got == 0) {
+				return -1;
+			}
+			final int ret = got > cbuf.length ? cbuf.length : got;
+			System.arraycopy(chars, pos, cbuf, 0, ret);
+			pos += ret;
+			return ret;
+		}
+
+		@Override
+		public int read(final char[] cbuf, final int off, final int howmuch) throws IOException {
+			final int got = chars.length - pos;
+			if (got == 0) {
+				return -1;
+			}
+			final int ret = got > howmuch ? howmuch : got;
+			System.arraycopy(chars, pos, cbuf, off, ret);
+			pos += ret;
+			return ret;
+		}
+
+		@Override
+		public long skip(final long n) throws IOException {
+			long got = chars.length - pos;
+			if (got > n) {
+				pos += (int)n;
+				return n;
+			}
+			long ret = chars.length - pos;
+			pos = chars.length;
+			return ret;
+		}
+
+		@Override
+		public boolean ready() throws IOException {
+			return true;
+		}
+
+		@Override
+		public boolean markSupported() {
+			return false;
+		}
+
+		@Override
+		public void mark(final int readAheadLimit) throws IOException {
+			return;
+		}
+
+		@Override
+		public void reset() throws IOException {
+			pos = 0;
+		}
+
+		@Override
+		public void close() throws IOException {
+			return;
+		}
+		
+	}
+
+	private static String INPUT1 = "<root />";
+
+	private static Object EXPECTED1 = null;
+
+	private static String INPUT2 = "   <!-- comment -->  ";
+
+	private static Object EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private String _input;
+		private Object _expected;
+
+		public Fixture(String _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}

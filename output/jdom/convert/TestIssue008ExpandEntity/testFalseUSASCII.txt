@@ -1,0 +1,109 @@
+package org.jdom2.test.cases.special;
+
+import static org.junit.Assert.*;
+
+import java.io.IOException;
+import java.net.URL;
+
+import org.jdom2.Document;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
+import org.jdom2.test.util.FidoFetch;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+@SuppressWarnings("javadoc")
+public @RunWith(Theories.class) class AutoPutTest {
+	
+	private final void roundTrip(boolean expand, boolean validating, String encoding, String expect) {
+		String docloc = "/" + this.getClass().getPackage().getName().replaceAll("\\.", "/") + "/TestIssue008.xml";
+		URL docurl = FidoFetch.getFido().getURL(docloc);
+		
+		if (docurl == null) {
+			throw new IllegalStateException("Unable to get resource " + docloc);
+		}
+
+		@SuppressWarnings("deprecation")
+		SAXBuilder builder = new SAXBuilder(validating);
+		//builder.setValidation(validating);
+		builder.setExpandEntities(expand);
+		Document doc = null;
+		try {
+			doc = builder.build(docurl);
+		} catch (JDOMException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if (doc == null) {
+			fail("Unable to parse document, see output.");
+		}
+		
+		Format fmt = Format.getCompactFormat();
+		if (encoding != null) {
+			fmt.setEncoding(encoding);
+		}
+		XMLOutputter xout = new XMLOutputter(fmt);
+		
+		String actual = xout.outputString(doc.getRootElement());
+		assertEquals(expect, actual);
+		
+	}
+
+	@Theory
+	public void autoPutTest(Fixture fixture) {
+		roundTrip(new Boolean(fixture._input[0].toString()), new Boolean(fixture._input[1].toString()), (String) fixture._input[2], (String) fixture._input[3]);
+	}
+
+	private static Object[] INPUT1 = { false, false, "US-ASCII", "<doc>&minus;</doc>" };
+
+	private static Object EXPECTED1 = null;
+
+	private static Object[] INPUT2 = { false, false, "UTF-8", "<doc>&minus;</doc>" };
+
+	private static Object EXPECTED2 = null;
+
+	private static Object[] INPUT3 = { true, false, "US-ASCII", "<doc>&#x2212;</doc>" };
+
+	private static Object EXPECTED3 = null;
+
+	private static Object[] INPUT4 = { true, false, "UTF-8", "<doc>\u2212</doc>" };
+
+	private static Object EXPECTED4 = null;
+
+	private static Object[] INPUT5 = { false, true, "US-ASCII", "<doc>&minus;</doc>" };
+
+	private static Object EXPECTED5 = null;
+
+	private static Object[] INPUT6 = { false, true, "UTF-8", "<doc>&minus;</doc>" };
+
+	private static Object EXPECTED6 = null;
+
+	private static Object[] INPUT7 = { true, true, "US-ASCII", "<doc>&#x2212;</doc>" };
+
+	private static Object EXPECTED7 = null;
+
+	private static Object[] INPUT8 = { true, true, "UTF-8", "<doc>\u2212</doc>" };
+
+	private static Object EXPECTED8 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5),new Fixture(INPUT6,EXPECTED6),new Fixture(INPUT7,EXPECTED7),new Fixture(INPUT8,EXPECTED8)};
+
+	public static class Fixture {
+		private Object[] _input;
+		private Object _expected;
+
+		public Fixture(Object[] _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+
+}

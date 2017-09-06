@@ -1,0 +1,78 @@
+package org.jdom2.test.cases.transform;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.jdom2.Content;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.SAXOutputter;
+import org.jdom2.output.XMLOutputter;
+import org.jdom2.transform.JDOMSource;
+import org.junit.Test;
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXNotSupportedException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.ext.DefaultHandler2;
+import org.xml.sax.helpers.XMLFilterImpl;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+@SuppressWarnings("javadoc")
+public @RunWith(Theories.class) class AutoPutTest {
+
+	@Theory
+	public void autoPutTest(Fixture fixture) {
+		JDOMSource source = new JDOMSource(new Document(new Element("root")));
+		XMLReader reader = source.getXMLReader();
+		try {
+			reader.parse(new InputSource("someurl"));
+			fail ("Should not be able to read a non-JDOM input source.");
+		} catch (SAXNotSupportedException sne) {
+			// good;
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail ("Expecting a SAXNotSupportedExcetpion, but got " + e.getClass());
+		}
+		
+	}
+	
+	private static Object INPUT1 = null;
+
+	private static Object EXPECTED1 = null;
+
+	private static Object INPUT2 = null;
+
+	private static Object EXPECTED2 = null;
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2)};
+
+	public static class Fixture {
+		private Object _input;
+		private Object _expected;
+
+		public Fixture(Object _input, Object _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+}

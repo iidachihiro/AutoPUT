@@ -1,0 +1,82 @@
+package org.jdom2.test.cases.input;
+
+import static org.junit.Assert.*;
+
+import org.jdom2.DocType;
+import org.jdom2.JDOMException;
+import org.jdom2.JDOMFactory;
+import org.jdom2.DefaultJDOMFactory;
+import org.jdom2.input.stax.DTDParser;
+import org.jdom2.test.util.UnitTestUtil;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.experimental.theories.DataPoints;
+
+@SuppressWarnings("javadoc")
+public @RunWith(Theories.class) class AutoPutTest {
+
+	private static final JDOMFactory factory = new DefaultJDOMFactory();
+	
+	@Theory
+	public void autoPutTest(Fixture fixture) throws JDOMException {
+		DocType dt = DTDParser.parse(
+				fixture._input, 
+				factory);
+		
+		assertEquals("root", dt.getElementName());
+		assertEquals(null, dt.getPublicID());
+		assertEquals(null, dt.getSystemID());
+		assertEquals(fixture._expected, dt.getInternalSubset());
+	}
+
+	private static String INPUT1 = "<!DOCTYPE root[internal]>";
+
+	private static String EXPECTED1 = "internal";
+
+	private static String INPUT2 = "<!DOCTYPE root [<!ELEMENT root (#PCDATA)><!ENTITY xpd 'Expand Me!' >]>";
+
+	private static String EXPECTED2 = "  <!ELEMENT root (#PCDATA)>\n  <!ENTITY xpd 'Expand Me!'>\n";
+
+	private static String INPUT3 = "<!DOCTYPE root  \t \r \n [  \r \n <!ELEMENT root\n     (#PCDATA)>  \n <!ENTITY xpd \n   'Expand Me!' >\n ] \n >";
+
+	private static String EXPECTED3 = "  <!ELEMENT root (#PCDATA)>\n  <!ENTITY xpd 'Expand Me!'>\n";
+
+	private static String INPUT4 = "<!DOCTYPE root [ <!ENTITY  ent   'entity' > ] >";
+
+	private static String EXPECTED4 = "  <!ENTITY ent 'entity'>\n";
+
+	private static String INPUT5 = "<!DOCTYPE root [\t<!ENTITY\tent\t'entity'\t>\t]\t>";
+
+	private static String EXPECTED5 = "  <!ENTITY ent 'entity'>\n";
+
+	private static String INPUT6 = "<!DOCTYPE root [\n<!ENTITY\nent\n'entity'\n>\n]\n>";
+
+	private static String EXPECTED6 = "  <!ENTITY ent 'entity'>\n";
+
+	private static String INPUT7 = "<!DOCTYPE root [\r<!ENTITY\rent\r'entity'\r>\r]\r>";
+
+	private static String EXPECTED7 = "  <!ENTITY ent 'entity'>\n";
+
+	private static String INPUT8 = "<!DOCTYPE root [<!ENTITY ent 'entity with spaces\nand newlines,\ttabs, and crs\r' >]>";
+
+	private static String EXPECTED8 = "  <!ENTITY ent 'entity with spaces\nand newlines,\ttabs, and crs\r'>\n";
+
+	private static String INPUT9 = "<!DOCTYPE root [<!ENTITY  ent   \"entity with spaces\nand newlines,\ttabs, and crs\r\" >]>";
+
+	private static String EXPECTED9 = "  <!ENTITY ent \"entity with spaces\nand newlines,\ttabs, and crs\r\">\n";
+
+	@DataPoints public static Fixture[] DATA={new Fixture(INPUT1,EXPECTED1),new Fixture(INPUT2,EXPECTED2),new Fixture(INPUT3,EXPECTED3),new Fixture(INPUT4,EXPECTED4),new Fixture(INPUT5,EXPECTED5),new Fixture(INPUT6,EXPECTED6),new Fixture(INPUT7,EXPECTED7),new Fixture(INPUT8,EXPECTED8),new Fixture(INPUT9,EXPECTED9)};
+
+	public static class Fixture {
+		private String _input;
+		private String _expected;
+
+		public Fixture(String _input, String _expected) {
+			this._input = _input;
+			this._expected = _expected;
+		}
+	}
+
+}
