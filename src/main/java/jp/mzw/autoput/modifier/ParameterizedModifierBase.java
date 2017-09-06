@@ -929,7 +929,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return iTypeBinding.isPrimitive() && iTypeBinding.toString().equals(type);
     }
 
-    private ClassInstanceCreation _convertObjectToPrimitiveWrapper(Expression expression, String type) {
+    private MethodInvocation _convertObjectToPrimitiveWrapper(Expression expression, String type) {
         MethodInvocation methodInvocation = ast.newMethodInvocation();
         methodInvocation.setExpression(expression);
         methodInvocation.setName(ast.newSimpleName("toString"));
@@ -937,7 +937,16 @@ public class ParameterizedModifierBase extends AbstractModifier {
         ListRewrite argsRewrite = rewrite.getListRewrite(classInstanceCreation, ClassInstanceCreation.ARGUMENTS_PROPERTY);
         argsRewrite.insertLast(methodInvocation, null);
         classInstanceCreation.setType(ast.newSimpleType(ast.newName(type)));
-        return classInstanceCreation;
+        MethodInvocation methodInvocation1 = ast.newMethodInvocation();
+        methodInvocation1.setExpression(classInstanceCreation);
+        String valueType = "";
+        if (type.equals("Integer")) {
+            valueType = "int";
+        } else {
+            valueType = type.toLowerCase();
+        }
+        methodInvocation1.setName(ast.newSimpleName(valueType + "Value"));
+        return methodInvocation1;
     }
 
     private boolean canBeCasted(ASTNode node) {
