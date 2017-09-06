@@ -113,6 +113,23 @@ public abstract class AbstractModifier {
         }
     }
 
+    public void deploy() {
+        // DETECT_RESULTを読み込む
+        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
+        // modifyしていく
+        for (CSVRecord record : records) {
+            String subjectId = record.get(0);
+            String testId = record.get(1);
+            String className = record.get(2);
+            String originName = record.get(3);
+            String packageName = record.get(4);
+            // For AutoPut
+            ExperimentUtils.deploy(project.getProjectId(), subjectId, testId, packageName, "AutoPut");
+            // For Original
+            ExperimentUtils.deploy(project.getProjectId(), subjectId, testId, packageName, "Origin");
+        }
+    }
+
     private void createSubjectFile(Project project, String subjectId, String testId, String className, String oririnName, String packageName, String mode) {
         ExperimentUtils.createSubjectFileDirs(project.getProjectId(), subjectId, testId, mode);
         for (TestSuite testSuite : getTestSuites()) {

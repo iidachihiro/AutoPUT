@@ -3,6 +3,7 @@ package jp.mzw.autoput;
 import jp.mzw.autoput.core.Project;
 
 import jp.mzw.autoput.core.TestSuite;
+import jp.mzw.autoput.experiment.ExperimentUtils;
 import jp.mzw.autoput.modifier.ParameterizedModifier;
 import org.eclipse.jface.text.BadLocationException;
 import org.slf4j.Logger;
@@ -29,6 +30,8 @@ public class Main {
             parameterizedModifier.modify();
         } else if (command.equals("experiment")) {
             parameterizedModifier.experiment();
+        } else if (command.equals("deploy")) {
+            parameterizedModifier.deploy();
         } else {
             System.out.println("Wrong Command!");
         }
