@@ -338,8 +338,8 @@ public @RunWith(Theories.class) class AutoPutTest extends TestCase {
         LocalDate test = new LocalDate((String) fixture._input[0]);
         assertEquals(ISO_UTC, test.getChronology());
         assertEquals(1972, test.getYear());
-        assertEquals(new Integer(fixture._input[1].toString()), test.getMonthOfYear());
-        assertEquals(new Integer(fixture._input[2].toString()), test.getDayOfMonth());
+        assertEquals(new Integer(fixture._input[1].toString()).intValue(), test.getMonthOfYear());
+        assertEquals(new Integer(fixture._input[2].toString()).intValue(), test.getDayOfMonth());
     }
 
     public void testConstructor_ObjectString2() throws Throwable {
