@@ -9,6 +9,8 @@ import jp.mzw.autoput.util.Utils;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
@@ -37,25 +39,27 @@ public class Prepare {
 
     public static final String CONFIG_FILENAME = "config.properties";
 
-    static final int SIMILAR_METHODS_NUM = 1;
     protected static final String DETECT_RESULT = "detect_result.csv";
     protected static final String CONVERTER_RESULT = "converter_results.csv";
     protected static final String EXPERIMENTAL_SETTING = "experimental_setting.csv";
     protected static final String[] PROJECTS =
-            {"commons-codec"};
-//            {"commons-codec", "commons-collections", "commons-math", "joda-time", "jdom"};
+//            {"commons-codec"};
+            {"commons-codec", "commons-collections", "commons-math", "joda-time", "jdom"};
 
     public static void main(String[] args) throws IOException {
         String command = args[0];
+        String projectId = args[1];
         if (command.equals("random")) {
-            getTargetsRandomly();
+            getTargetsRandomly(projectId);
         } else if (command.equals("all")) {
             getAllTargets();
         } else if (command.equals("prepare")) {
             prepareExperimentalTargets();
         } else if (command.equals("test-compile")) {
-            String projectId = args[1];
             compileCheck(projectId);
+        } else if (command.equals("morethan")) {
+            int threshold = new Integer(args[1]);
+            detectMoreThanTreshold(threshold);
         }
     }
 
@@ -63,19 +67,18 @@ public class Prepare {
         return String.join("/", "experiment", "subject", project, EXPERIMENTAL_SETTING);
     }
 
-    private static void getTargetsRandomly() {
-        for (String project : PROJECTS) {
-            System.out.println("Project: " + project);
-            List<CSVRecord> convertResults = getConvertResults(project);
-            int count = 0;
-            while (count < 10) {
-                Collections.shuffle(convertResults);
-                CSVRecord record = convertResults.get(0);
-                convertResults.remove(0);
-                if (record.get(2).equals("1") && record.get(3).equals("1")) {
-                    System.out.println("Class: " + record.get(0) + " , Original: " + record.get(1));
-                    count++;
-                }
+    private static void getTargetsRandomly(String project) {
+        System.out.println("Project: " + project);
+        List<CSVRecord> detectResults = getDetectResults(project);
+        for (int i = 1; i <= 2; i++) {
+            int count = 1;
+            while (count <= 10) {
+                Collections.shuffle(detectResults);
+                CSVRecord record = detectResults.get(0);
+                detectResults.remove(0);
+                System.out.println(String.join(",",
+                        String.valueOf(i), String.valueOf(count), record.get(1), record.get(2), record.get(0)));
+                count++;
             }
         }
     }
@@ -90,6 +93,37 @@ public class Prepare {
                 if (record.get(2).equals("1") && record.get(3).equals("1")) {
 //                    System.out.println("Class: " + record.get(0) + " , Original: " + record.get(1));
                     size++;
+                }
+            }
+            allSize += size;
+            System.out.println("Size: " + size);
+        }
+        System.out.println("All Size: " + allSize);
+    }
+
+    private static void detectMoreThanTreshold(int threshold) {
+        int allSize = 0;
+        for (String project : PROJECTS) {
+            System.out.println("Project: " + project);
+            List<Pair<String, String>> manySimilarMethods = new ArrayList<>();
+            int size = 0;
+            List<CSVRecord> detectResults = getDetectResults(project);
+            for (CSVRecord record : detectResults) {
+                if (record.size() > threshold) {
+                    String className = record.get(0);
+                    String originName = record.get(1);
+                    manySimilarMethods.add(new ImmutablePair<>(className, originName));
+                }
+            }
+            List<CSVRecord> convertResults = getConvertResults(project);
+            for (CSVRecord record : convertResults) {
+                String className = record.get(0);
+                String originName = record.get(1);
+                for (Pair<String, String> pair : manySimilarMethods) {
+                    if (className.equals(pair.getLeft()) && originName.equals(pair.getRight())
+                            && record.get(2).equals("1") && record.get(3).equals("1")) {
+                        size++;
+                    }
                 }
             }
             allSize += size;
@@ -190,17 +224,13 @@ public class Prepare {
                 if (beforeFilePath != null) {
                     deleteFile(beforeFilePath);
                 }
-                String className = record.get(0);
-                String originName = record.get(1);
-                String packageName = record.get(2);
+                String className = record.get(2);
+                String originName = record.get(3);
+                String packageName = record.get(4);
                 Path path = getPathOfAutoPut(projectId, packageName);
                 beforeFilePath = path;
-                if (record.get(3).equals("true")) {
-                    System.out.println("Pass Compiling: " + className + "_" + originName);
-                    continue;
-                }
-                String content = getConvertedTest(projectId, className, originName);
 
+                String content = getConvertedTest(projectId, className, originName);
                 deleteFile(path);
                 createFile(path, content);
                 File subject = project.getProjectDir();

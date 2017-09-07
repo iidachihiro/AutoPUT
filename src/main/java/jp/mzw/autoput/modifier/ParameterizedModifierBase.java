@@ -5,6 +5,8 @@ import jp.mzw.autoput.core.Project;
 import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
 import jp.mzw.autoput.experiment.ExperimentUtils;
+import jp.mzw.autoput.experiment.Prepare;
+import org.apache.commons.csv.CSVRecord;
 import org.eclipse.jdt.core.dom.*;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
@@ -86,9 +88,25 @@ public class ParameterizedModifierBase extends AbstractModifier {
             addFixtureClass(method);
             // クラスに修飾子も追加
             modifyClassInfo(clazzName);
+            // 既存のテストメソッドを全て削除(コンストラクタと@Testのないものは残る)
+            deleteOtherTestMethods(method);
+        } else if (mode.equals("Origin")) {
+            List<CSVRecord> detectResults = Prepare.getDetectResults(project.getProjectId());
+            for (int i = detectResults.size() - 1; 0 <= i; i--) {
+                CSVRecord record = detectResults.get(i);
+                String className = record.get(0);
+                String originName = record.get(1);
+                if (!testSuite.getTestClassName().equals(className)
+                        || !method.getName().getIdentifier().equals(originName)) {
+                    continue;
+                }
+                List<String> similarMethods = new ArrayList<>();
+                for (int j = 2; j < record.size(); j++) {
+                    similarMethods.add(record.get(j));
+                }
+                excludeNotSimilarMethods(method, similarMethods);
+            }
         }
-        // 既存のテストメソッドを全て削除(コンストラクタと@Testのないものは残る)
-        deleteOtherTestMethods(method);
         // コンストラクタ名を修正
         modifyConstructor(method, clazzName);
         // クラス内に出てくるクラス名をすべて変更
@@ -630,6 +648,8 @@ public class ParameterizedModifierBase extends AbstractModifier {
                     replace = _castObject(arrayAccess, target);
                 } else if (isDoubleArrayType(getInputType(origin)) && shouldCastDoubleToInt(target)) {
                     replace = _castInt(arrayAccess);
+                } else if (isDoubleArrayType(getInputType(origin)) && shouldCastDoubleToLong(target)) {
+                    replace = _castLong(arrayAccess);
                 } else {
                     replace = arrayAccess;
                 }
@@ -640,6 +660,36 @@ public class ParameterizedModifierBase extends AbstractModifier {
             }
         }
         return;
+    }
+
+    protected Type getExpectedExceptionType(MethodDeclaration origin) {
+        for (IExtendedModifier iExtendedModifier : (List<IExtendedModifier>) origin.modifiers()) {
+            if (iExtendedModifier.isAnnotation()) {
+                Annotation annotation = (Annotation) iExtendedModifier;
+                if (!(annotation instanceof SingleMemberAnnotation)) {
+                    continue;
+                }
+                SingleMemberAnnotation singleMemberAnnotation = (SingleMemberAnnotation) annotation;
+                if (!(singleMemberAnnotation.getValue() instanceof Assignment)) {
+                    continue;
+                }
+                Assignment assignment = (Assignment) singleMemberAnnotation.getValue();
+                if (!assignment.getOperator().equals(Assignment.Operator.ASSIGN)) {
+                    continue;
+                }
+                if (!(assignment.getLeftHandSide() instanceof SimpleName)) {
+                    continue;
+                }
+                if (!(assignment.getRightHandSide() instanceof TypeLiteral)) {
+                    continue;
+                }
+                TypeLiteral typeLiteral = (TypeLiteral) assignment.getRightHandSide();
+                if (typeLiteral.getType().toString().contains("Exception")) {
+                    return typeLiteral.getType();
+                }
+            }
+        }
+        return null;
     }
 
     protected Type getInputType(MethodDeclaration origin) {
@@ -1023,6 +1073,14 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return castExpression;
     }
 
+    private CastExpression _castLong(Expression expression) {
+        CastExpression castExpression = ast.newCastExpression();
+        castExpression.setExpression(expression);
+        Type castType = ast.newPrimitiveType(PrimitiveType.LONG);
+        castExpression.setType(castType);
+        return castExpression;
+    }
+
     private Type _getCommonType(List<ASTNode> nodes) {
         Type ret;
         if (1 < nodes.size()) {
@@ -1094,4 +1152,70 @@ public class ParameterizedModifierBase extends AbstractModifier {
         return false;
     }
 
+    private boolean shouldCastDoubleToLong(ASTNode target) {
+        if (target.getParent() instanceof MethodInvocation) {
+            MethodInvocation methodInvocation = (MethodInvocation) target.getParent();
+            List<Expression> args = (List<Expression>) methodInvocation.arguments();
+            int targetIndex = -1;
+            for (int i = 0; i < args.size(); i++) {
+                Expression arg = args.get(i);
+                if (arg.equals(target)) {
+                    targetIndex = i;
+                }
+            }
+            if (targetIndex < 0) {
+                return false;
+            }
+            IMethodBinding iMethodBinding = methodInvocation.resolveMethodBinding();
+            ITypeBinding[] iTypeBindings = iMethodBinding.getParameterTypes();
+            if (iTypeBindings.length - 1 < targetIndex) {
+                return false;
+            }
+            if (iTypeBindings[targetIndex].getName().equals("long")) {
+                return true;
+            }
+        } else if (target.getParent() instanceof ClassInstanceCreation) {
+            ClassInstanceCreation classInstanceCreation = (ClassInstanceCreation) target.getParent();
+            List<Expression> args = (List<Expression>) classInstanceCreation.arguments();
+            int targetIndex = -1;
+            for (int i = 0; i < args.size(); i++) {
+                Expression arg = args.get(i);
+                if (arg.equals(target)) {
+                    targetIndex = i;
+                }
+            }
+            if (targetIndex < 0) {
+                return false;
+            }
+            IMethodBinding iMethodBinding = classInstanceCreation.resolveConstructorBinding();
+            ITypeBinding[] iTypeBindings = iMethodBinding.getParameterTypes();
+            if (iTypeBindings.length - 1 < targetIndex) {
+                return false;
+            }
+            if (iTypeBindings[targetIndex].getName().equals("long")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void excludeNotSimilarMethods(MethodDeclaration origin, List<String> similarMethods) {
+        TypeDeclaration modified = getTargetType();
+        ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
+        for (MethodDeclaration methodDeclaration : modified.getMethods()) {
+            if (ASTUtils.hasPrivateModifier(methodDeclaration.modifiers())) {
+                continue;
+            }
+            if (methodDeclaration.getName().getIdentifier().equals(origin.getName().getIdentifier())) {
+                continue;
+            }
+            if (similarMethods.contains(methodDeclaration.getName().getIdentifier())) {
+                continue;
+            }
+            if (ASTUtils.hasPublicModifier(methodDeclaration.modifiers())
+                    && methodDeclaration.getName().getIdentifier().startsWith("test")) {
+                listRewrite.remove(methodDeclaration, null);
+            }
+        }
+    }
 }

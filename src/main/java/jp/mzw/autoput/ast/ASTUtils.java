@@ -20,6 +20,15 @@ public class ASTUtils {
         return ast.newModifier(Modifier.ModifierKeyword.STATIC_KEYWORD);
     }
 
+    public static boolean canExtract(Expression expression) {
+        if (expression instanceof BooleanLiteral) return true;
+        if (expression instanceof CharacterLiteral) return true;
+        if (expression instanceof NumberLiteral) return true;
+        if (expression instanceof StringLiteral) return true;
+        ITypeBinding iTypeBinding = expression.resolveTypeBinding();
+        return true;
+    }
+
     public static SingleMemberAnnotation getRunWithAnnotation(AST ast) {
         return createSingleMemberAnnotation(ast, "RunWith", "Theories");
     }
@@ -427,6 +436,36 @@ public class ASTUtils {
             if (iExtendedModifier.isAnnotation()) {
                 Annotation annotation = (Annotation) iExtendedModifier;
                 if (annotation.getTypeName().toString().equals("Test")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean expectException(MethodDeclaration method) {
+        for (IExtendedModifier iExtendedModifier : (List<IExtendedModifier>) method.modifiers()) {
+            if (iExtendedModifier.isAnnotation()) {
+                Annotation annotation = (Annotation) iExtendedModifier;
+                if (!(annotation instanceof SingleMemberAnnotation)) {
+                    continue;
+                }
+                SingleMemberAnnotation singleMemberAnnotation = (SingleMemberAnnotation) annotation;
+                if (!(singleMemberAnnotation.getValue() instanceof Assignment)) {
+                    continue;
+                }
+                Assignment assignment = (Assignment) singleMemberAnnotation.getValue();
+                if (!assignment.getOperator().equals(Assignment.Operator.ASSIGN)) {
+                    continue;
+                }
+                if (!(assignment.getLeftHandSide() instanceof SimpleName)) {
+                    continue;
+                }
+                if (!(assignment.getRightHandSide() instanceof TypeLiteral)) {
+                    continue;
+                }
+                TypeLiteral typeLiteral = (TypeLiteral) assignment.getRightHandSide();
+                if (typeLiteral.getType().toString().contains("Exception")) {
                     return true;
                 }
             }

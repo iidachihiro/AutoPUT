@@ -46,16 +46,7 @@ public abstract class AbstractModifier {
         return project.getTestSuites();
     }
 
-    protected String getDetectResultDir() {
-        return String.join("/", OUTPUT_PATH, project.getProjectId(), DETECT_DIR);
-    }
-    protected String getDetectResultPath() {
-        return String.join("/", OUTPUT_PATH, project.getProjectId(), DETECT_DIR, DETECT_RESULT);
-    }
 
-    protected String getConvertResultDir() {
-        return String.join("/", OUTPUT_PATH, project.getProjectId(), CONVERT_DIR);
-    }
 
     abstract public void modify(MethodDeclaration method);
 
@@ -64,8 +55,8 @@ public abstract class AbstractModifier {
         List<CSVRecord> records = _getDetectResults();
         // modifyしていく
         for (CSVRecord record : records) {
-            String testSuiteName = record.get(0);
-            String testCaseName  = record.get(1);
+            String testSuiteName = record.get(1);
+            String testCaseName  = record.get(2);
             if (Files.exists(Paths.get(getConvertResultDir() + "/"
                     + testSuiteName + "/" + testCaseName + ".txt"))) {
                 continue;
@@ -96,39 +87,19 @@ public abstract class AbstractModifier {
             }
         }
     }
-    public void experiment() {
-        // DETECT_RESULTを読み込む
-        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
-        // modifyしていく
-        for (CSVRecord record : records) {
-            String subjectId = record.get(0);
-            String testId = record.get(1);
-            String className = record.get(2);
-            String originName = record.get(3);
-            String packageName = record.get(4);
-            // For AutoPut
-            createSubjectFile(project, subjectId, testId, className, originName, packageName, "AutoPut");
-            // For Original
-            createSubjectFile(project, subjectId, testId, className, originName, packageName, "Origin");
-        }
+
+
+    protected String getDetectResultDir() {
+        return String.join("/", OUTPUT_PATH, project.getProjectId(), DETECT_DIR);
+    }
+    protected String getDetectResultPath() {
+        return String.join("/", OUTPUT_PATH, project.getProjectId(), DETECT_DIR, DETECT_RESULT);
     }
 
-    public void deploy() {
-        // DETECT_RESULTを読み込む
-        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
-        // modifyしていく
-        for (CSVRecord record : records) {
-            String subjectId = record.get(0);
-            String testId = record.get(1);
-            String className = record.get(2);
-            String originName = record.get(3);
-            String packageName = record.get(4);
-            // For AutoPut
-            ExperimentUtils.deploy(project.getProjectId(), subjectId, testId, packageName, "AutoPut");
-            // For Original
-            ExperimentUtils.deploy(project.getProjectId(), subjectId, testId, packageName, "Origin");
-        }
+    protected String getConvertResultDir() {
+        return String.join("/", OUTPUT_PATH, project.getProjectId(), CONVERT_DIR);
     }
+
 
     private void createSubjectFile(Project project, String subjectId, String testId, String className, String oririnName, String packageName, String mode) {
         ExperimentUtils.createSubjectFileDirs(project.getProjectId(), subjectId, testId, mode);
@@ -153,16 +124,7 @@ public abstract class AbstractModifier {
         }
     }
 
-    private List<CSVRecord> _getDetectResults() {
-        List<CSVRecord> ret = new ArrayList<>();
-        try (BufferedReader br = Files.newBufferedReader(Paths.get(getDetectResultPath()), StandardCharsets.UTF_8)) {
-            CSVParser parser = CSVFormat.DEFAULT.parse(br);
-            ret = parser.getRecords();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return ret;
-    }
+
 
 
     public void detect() {
@@ -188,7 +150,7 @@ public abstract class AbstractModifier {
             Map<MethodDeclaration, List<MethodDeclaration>> detected = detect(testSuite);
             for (MethodDeclaration method : detected.keySet()) {
                 StringBuilder sb = new StringBuilder();
-                sb.append(String.join(",", testSuite.getTestClassName(), method.getName().getIdentifier()));
+                sb.append(String.join(",", testSuite.getCu().getPackage().getName().toString(), testSuite.getTestClassName(), method.getName().getIdentifier()));
                 for (MethodDeclaration similarMethod : detected.get(method)) {
                     sb.append(",").append(similarMethod.getName().getIdentifier());
                 }
@@ -300,5 +262,71 @@ public abstract class AbstractModifier {
             }
         }
         return true;
+    }
+
+
+
+    /* ------------------------- For Experiment ------------------------- */
+
+    public void experiment() {
+        // DETECT_RESULTを読み込む
+        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
+        // modifyしていく
+        for (CSVRecord record : records) {
+            String subjectId = record.get(0);
+            String testId = record.get(1);
+            String className = record.get(2);
+            String originName = record.get(3);
+            String packageName = record.get(4);
+            // For AutoPut
+            createSubjectFile(project, subjectId, testId, className, originName, packageName, "AutoPut");
+            // For Original
+            createSubjectFile(project, subjectId, testId, className, originName, packageName, "Origin");
+        }
+    }
+
+    public void deploy() {
+        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
+        // modifyしていく
+        for (CSVRecord record : records) {
+            String subjectId = record.get(0);
+            String testId = record.get(1);
+            String className = record.get(2);
+            String originName = record.get(3);
+            String packageName = record.get(4);
+            // For AutoPut
+            ExperimentUtils.deploy(project.getProjectId(), subjectId, testId, packageName, "AutoPut");
+            // For Original
+            ExperimentUtils.deploy(project.getProjectId(), subjectId, testId, packageName, "Origin");
+        }
+    }
+
+    public void delete() {
+        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
+        // modifyしていく
+        for (CSVRecord record : records) {
+            String subjectId = record.get(0);
+            String testId = record.get(1);
+            String className = record.get(2);
+            String originName = record.get(3);
+            String packageName = record.get(4);
+            // For AutoPut
+            ExperimentUtils.delete(project.getProjectId(), subjectId, testId, packageName, "AutoPut");
+            // For Original
+            ExperimentUtils.delete(project.getProjectId(), subjectId, testId, packageName, "Origin");
+        }
+    }
+
+    /* -------------------------- Private --------------------------------- */
+
+    private List<CSVRecord> _getDetectResults() {
+        List<CSVRecord> ret = new ArrayList<>();
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(getDetectResultPath()), StandardCharsets.UTF_8)) {
+            CSVParser parser = CSVFormat.DEFAULT.parse(br);
+            ret = parser.getRecords();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ret;
     }
 }

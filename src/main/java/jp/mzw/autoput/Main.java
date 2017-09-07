@@ -32,6 +32,8 @@ public class Main {
             parameterizedModifier.experiment();
         } else if (command.equals("deploy")) {
             parameterizedModifier.deploy();
+        } else if (command.equals("delete")) {
+            parameterizedModifier.delete();
         } else {
             System.out.println("Wrong Command!");
         }

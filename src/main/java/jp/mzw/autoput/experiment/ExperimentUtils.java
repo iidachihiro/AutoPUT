@@ -14,6 +14,9 @@ public class ExperimentUtils {
         return Paths.get(String.join("/", "experiment", "subject", project ,subjectId, getSubjectName(subjectId, testId, mode) + ".java"));
     }
     public static void createSubjectFileDirs(String project, String subjectId, String testId, String mode) {
+        if (Files.exists(getSubjectFilePath(project, subjectId, testId, mode))) {
+            return;
+        }
         try {
             Files.createDirectories(Paths.get(String.join("/", "experiment", "subject", project ,subjectId)));
             Files.createFile(getSubjectFilePath(project, subjectId, testId, mode));
@@ -59,6 +62,14 @@ public class ExperimentUtils {
             Files.deleteIfExists(getWrongDeployPath(project, subjectId, testId, packageName, mode));
             String content = getModifiedContent(project, subjectId, testId, mode);
             bw.write(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void delete(String project, String subjectId, String testId, String packageName, String mode) {
+        try {
+            Files.deleteIfExists(getDeployPath(project, subjectId, testId, packageName, mode));
         } catch (IOException e) {
             e.printStackTrace();
         }
