@@ -60,18 +60,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
     public CompilationUnit getCompilationUnit() {
         return testSuite.getCu();
     }
-    
-    protected void outputConvertResult(String methodName, String content) {
-        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(getConvertResultDir() + "/"
-                + testSuite.getTestClassName() + "/" + methodName + ".txt"))) {
-            bw.write(content);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
-    public String experimentalModify(MethodDeclaration method, String subjectId, String testId, String mode) {
-        String clazzName = ExperimentUtils.getSubjectName(subjectId, testId, mode);
+    public String experimentalModify(MethodDeclaration method, String mode) {
+        String clazzName = mode + "Test";
         cu = getCompilationUnit();
         ast = cu.getAST();
         String methodName = method.getName().getIdentifier();
@@ -94,14 +85,16 @@ public class ParameterizedModifierBase extends AbstractModifier {
             List<CSVRecord> detectResults = Prepare.getDetectResults(project.getProjectId());
             for (int i = detectResults.size() - 1; 0 <= i; i--) {
                 CSVRecord record = detectResults.get(i);
-                String className = record.get(0);
-                String originName = record.get(1);
-                if (!testSuite.getTestClassName().equals(className)
-                        || !method.getName().getIdentifier().equals(originName)) {
+                String packageName = record.get(0);
+                String className = record.get(1);
+                String testName = record.get(2);
+                if (!getCompilationUnit().getPackage().getName().toString().equals(packageName)
+                        || !testSuite.getTestClassName().equals(className)
+                        || !method.getName().getIdentifier().equals(testName)) {
                     continue;
                 }
                 List<String> similarMethods = new ArrayList<>();
-                for (int j = 2; j < record.size(); j++) {
+                for (int j = 3; j < record.size(); j++) {
                     similarMethods.add(record.get(j));
                 }
                 excludeNotSimilarMethods(method, similarMethods);
@@ -130,7 +123,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
     }
 
     @Override
-    public void modify(MethodDeclaration method) {
+    public String modify(MethodDeclaration method) {
         cu = getCompilationUnit();
         ast = cu.getAST();
         String methodName = method.getName().getIdentifier();
@@ -157,17 +150,13 @@ public class ParameterizedModifierBase extends AbstractModifier {
             Document document = new Document(testSuite.getTestSources());
             TextEdit edit = rewrite.rewriteAST(document, null);
             edit.apply(document);
-            outputConvertResult(methodName, document.get());
+            return document.get();
         } catch (IOException | BadLocationException e) {
             e.printStackTrace();
         } catch (IllegalArgumentException e) {
             LOGGER.error("{}: {} at {}", e.getClass(), e.getMessage(), methodName);
         }
-        // initialize
-        this.cu = null;
-        this.ast = null;
-        this.rewrite = null;
-        return;
+        return "";
     }
 
     protected void addImportDeclarations() {
@@ -207,7 +196,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         ListRewrite modifiersListRewrite = rewrite.getListRewrite(modified, TypeDeclaration.MODIFIERS2_PROPERTY);
         // RunWithアノテーションを付与
         SingleMemberAnnotation annotation = ASTUtils.getRunWithAnnotation(ast);
-        modifiersListRewrite.insertLast(annotation, null);
+        modifiersListRewrite.insertFirst(annotation, null);
     }
 
 
@@ -255,32 +244,6 @@ public class ParameterizedModifierBase extends AbstractModifier {
         TypeDeclaration modified = getTargetType();
         ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
         listRewrite.insertLast(method, null);
-    }
-
-
-    protected void createDataMethod(MethodDeclaration origin) {
-        MethodDeclaration method = ast.newMethodDeclaration();
-        method.setConstructor(false);
-        // メソッド名を設定
-        method.setName(ast.newSimpleName(DATA_METHOD));
-        // 修飾子を設定
-        ListRewrite modifiersListRewrite = rewrite.getListRewrite(method, MethodDeclaration.MODIFIERS2_PROPERTY);
-        modifiersListRewrite.insertLast(ASTUtils.getParametersAnnotation(ast), null);
-        modifiersListRewrite.insertLast(ASTUtils.getPublicModifier(ast), null);
-        modifiersListRewrite.insertLast(ASTUtils.getStaticModifier(ast), null);
-        // returnの型(Collection<Object[]>)を設定
-        ParameterizedType type = ast.newParameterizedType(ast.newSimpleType(ast.newName("Collection")));
-        ArrayType objectArray = ast.newArrayType(ast.newSimpleType(ast.newName("Object")));
-        type.typeArguments().add(objectArray);
-        method.setReturnType2(type);
-        // bodyを設定
-        method.setBody(_createDataBody(origin));
-
-        // dataメソッドを追加
-        TypeDeclaration modified = getTargetType();
-        ListRewrite listRewrite = rewrite.getListRewrite(modified, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
-        listRewrite.insertLast(method, null);
-        return;
     }
 
     protected void createDataPoints(MethodDeclaration origin) {
@@ -524,6 +487,10 @@ public class ParameterizedModifierBase extends AbstractModifier {
             if (annotation.getTypeName().toString().equals("Test")) {
                 annotationRewrite.remove(annotation, null);
             }
+            // @Overrideを削除
+            if (annotation.getTypeName().toString().equals("Override")) {
+                annotationRewrite.remove(annotation, null);
+            }
         }
         // @Theoryを追加
         annotationRewrite.insertFirst(ASTUtils.getThoryAnnotation(ast), null);
@@ -564,6 +531,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
             if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                 target = target.getParent();
             }
+            if (target instanceof SimpleName) {
+                target = _getRootName((Name) target);
+            }
             FieldAccess replace = ast.newFieldAccess();
             SimpleName expected = ast.newSimpleName(EXPECTED_VAR);
             replace.setName(expected);
@@ -573,7 +543,6 @@ public class ParameterizedModifierBase extends AbstractModifier {
         } else {
             for (int i = 0; i < expectedRelatedNodes.size(); i++) {
                 ASTNode target = expectedRelatedNodes.get(i);
-
                 ASTNode replace;
                 QualifiedName fixtureExpected = ast.newQualifiedName(ast.newSimpleName(FIXTURE_NAME), ast.newSimpleName(EXPECTED_VAR));
                 ArrayAccess arrayAccess = ast.newArrayAccess();
@@ -604,6 +573,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                     target = target.getParent();
                 }
+                if (target instanceof SimpleName) {
+                    target = _getRootName((Name) target);
+                }
                 rewrite.replace(target, replace, null);
             }
         }
@@ -612,6 +584,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
             ASTNode target = inputRelatedNodes.get(0);
             if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                 target = target.getParent();
+            }
+            if (target instanceof SimpleName) {
+                target = _getRootName((Name) target);
             }
             FieldAccess replace = ast.newFieldAccess();
             SimpleName input = ast.newSimpleName(INPUT_VAR);
@@ -655,6 +630,9 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 }
                 if (ASTUtils.isNumberLiteralWithPrefixedMinus(target)) {
                     target = target.getParent();
+                }
+                if (target instanceof SimpleName) {
+                    target = _getRootName((Name) target);
                 }
                 rewrite.replace(target, replace, null);
             }
@@ -1213,9 +1191,18 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 continue;
             }
             if (ASTUtils.hasPublicModifier(methodDeclaration.modifiers())
+                    && ASTUtils.isVoidReturn(methodDeclaration)
                     && methodDeclaration.getName().getIdentifier().startsWith("test")) {
                 listRewrite.remove(methodDeclaration, null);
             }
+        }
+    }
+
+    private Name _getRootName(Name name) {
+        if (!(name.getParent() instanceof Name)) {
+            return name;
+        } else {
+            return _getRootName(name);
         }
     }
 }

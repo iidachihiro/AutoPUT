@@ -94,9 +94,14 @@ public class Project {
         List<File> files = new ArrayList<>();
         files.addAll(Utils.getFiles(new File(subjectDir, "src/main/java")));
         files.addAll(Utils.getFiles(new File(subjectDir, "src/test/java")));
-        // For JDOM
-        files.addAll(Utils.getFiles(new File(subjectDir, "core/src/java")));
-        files.addAll(Utils.getFiles(new File(subjectDir, "test/src/java")));
+
+        // For Commons-Chain
+        files.addAll(Utils.getFiles(new File(subjectDir, "base/src/main/java")));
+        files.addAll(Utils.getFiles(new File(subjectDir, "base/src/test/java")));
+        // For Commons-Digester
+        files.addAll(Utils.getFiles(new File(subjectDir, "core/src/main/java")));
+        files.addAll(Utils.getFiles(new File(subjectDir, "core/src/test/java")));
+
         String[] sources = new String[files.size()];
         try {
             for (int i = 0; i < files.size(); i++) {
@@ -111,8 +116,10 @@ public class Project {
     public static String[] getTestFiles(File subjectDir) {
         List<File> files = new ArrayList<File>();
         files.addAll(Utils.getFiles(new File(subjectDir, "src/test/java")));
-        // For JDOM
-        files.addAll(Utils.getFiles(new File(subjectDir, "test/src/java")));
+        // For Commons-Chain
+        files.addAll(Utils.getFiles(new File(subjectDir, "base/src/test/java")));
+        // For Commons-Digester
+        files.addAll(Utils.getFiles(new File(subjectDir, "core/src/test/java")));
         String[] sources = new String[files.size()];
         try {
             for (int i = 0; i < files.size(); i++) {

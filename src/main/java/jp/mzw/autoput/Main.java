@@ -30,11 +30,14 @@ public class Main {
             parameterizedModifier.modify();
         } else if (command.equals("experiment")) {
             parameterizedModifier.experiment();
-        } else if (command.equals("deploy")) {
-            parameterizedModifier.deploy();
-        } else if (command.equals("delete")) {
-            parameterizedModifier.delete();
-        } else {
+        } else if (command.equals("evaluation")) {
+            parameterizedModifier.evaluation();
+        }  else if (command.equals("all")) {
+            parameterizedModifier.detect();
+            parameterizedModifier.modify();
+            parameterizedModifier.experiment();
+            parameterizedModifier.evaluation();
+        }  else {
             System.out.println("Wrong Command!");
         }
     }

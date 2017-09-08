@@ -5,27 +5,44 @@ import jp.mzw.autoput.core.Project;
 import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
 import jp.mzw.autoput.experiment.ExperimentUtils;
-import jp.mzw.autoput.experiment.Prepare;
+import jp.mzw.autoput.maven.MavenUtils;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.eclipse.jdt.core.dom.*;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+
 
 /**
  * Created by TK on 7/28/17.
  */
 public abstract class AbstractModifier {
+
+    protected static Logger LOGGER = LoggerFactory.getLogger(AbstractModifier.class);
     protected Project project;
     protected TestSuite testSuite;
 
@@ -46,24 +63,23 @@ public abstract class AbstractModifier {
         return project.getTestSuites();
     }
 
-
-
-    abstract public void modify(MethodDeclaration method);
+    abstract public String modify(MethodDeclaration method);
 
     public void modify() {
         // DETECT_RESULTを読み込む
         List<CSVRecord> records = _getDetectResults();
         // modifyしていく
         for (CSVRecord record : records) {
+            String packageName = record.get(0);
             String testSuiteName = record.get(1);
             String testCaseName  = record.get(2);
-            if (Files.exists(Paths.get(getConvertResultDir() + "/"
+            if (Files.exists(Paths.get(getConvertResultDir() + "/" + packageName + "/"
                     + testSuiteName + "/" + testCaseName + ".txt"))) {
                 continue;
             } else {
                 try {
-                    Files.createDirectories(Paths.get(getConvertResultDir() + "/" + testSuiteName));
-                    Files.createFile(Paths.get(getConvertResultDir() + "/"
+                    Files.createDirectories(Paths.get(getConvertResultDir() + "/" + packageName + "/" + testSuiteName));
+                    Files.createFile(Paths.get(getConvertResultDir() + "/" + packageName + "/"
                             + testSuiteName + "/" + testCaseName + ".txt"));
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -73,12 +89,16 @@ public abstract class AbstractModifier {
                 if (!testSuite.getTestClassName().equals(testSuiteName)) {
                     continue;
                 }
+                if (!testSuite.getCu().getPackage().getName().toString().equals(packageName)) {
+                    continue;
+                }
                 for (TestCase testCase : testSuite.getTestCases()) {
                     if (testCase.getName().equals(testCaseName)) {
                         try {
-                            new ParameterizedModifierBase(project, testSuite).modify(testCase.getMethodDeclaration());
+                            String content = new ParameterizedModifierBase(project, testSuite).modify(testCase.getMethodDeclaration());
+                            _outputConvertResult(packageName, testSuiteName, testCaseName, content);
                         } catch (NullPointerException e) {
-                            System.err.println("NullPo At " + testSuiteName + "_" + testCaseName + ".txt");
+                            System.err.println("NullPo At " + testSuiteName + "_" + testCaseName);
                             e.printStackTrace();
                         }
                         break;
@@ -101,8 +121,8 @@ public abstract class AbstractModifier {
     }
 
 
-    private void createSubjectFile(Project project, String subjectId, String testId, String className, String oririnName, String packageName, String mode) {
-        ExperimentUtils.createSubjectFileDirs(project.getProjectId(), subjectId, testId, mode);
+    private void createSubjectFile(Project project, String packageName, String className, String testName, String mode) {
+        ExperimentUtils.createSubjectFileDirs(project.getProjectId(), packageName, className, testName, mode);
         for (TestSuite testSuite : getTestSuites()) {
             if (!testSuite.getTestClassName().equals(className)) {
                 continue;
@@ -111,10 +131,10 @@ public abstract class AbstractModifier {
                 continue;
             }
             for (TestCase testCase : testSuite.getTestCases()) {
-                if (testCase.getName().equals(oririnName)) {
+                if (testCase.getName().equals(testName)) {
                     try {
-                        String content = new ParameterizedModifierBase(project, testSuite).experimentalModify(testCase.getMethodDeclaration(), subjectId, testId, mode);
-                        ExperimentUtils.outputConvertResult(project.getProjectId(), subjectId, testId, mode, content);
+                        String content = new ParameterizedModifierBase(project, testSuite).experimentalModify(testCase.getMethodDeclaration(), mode);
+                        ExperimentUtils.outputConvertResult(project.getProjectId(), packageName, className, testName, mode, content);
                     } catch (NullPointerException e) {
                         e.printStackTrace();
                     }
@@ -125,13 +145,8 @@ public abstract class AbstractModifier {
     }
 
 
-
-
     public void detect() {
-        if (Files.exists(Paths.get(getDetectResultPath()))) {
-            System.out.println("DetectResult already exists!");
-            return;
-        } else {
+        if (!Files.exists(Paths.get(getDetectResultPath()))) {
             try {
                 Files.createDirectories(Paths.get(getDetectResultDir()));
                 Files.createFile(Paths.get(getDetectResultPath()));
@@ -179,7 +194,7 @@ public abstract class AbstractModifier {
             if (registered[i]) {
                 continue;
             }
-            for (int j = size - 1; i < j; j--) {
+            for (int j = i + 1; j < size; j++) {
                 if (registered[j]) {
                     continue;
                 }
@@ -253,10 +268,15 @@ public abstract class AbstractModifier {
             } else if (node1 instanceof SimpleName) {
                 SimpleName tmp1 =(SimpleName) node1;
                 SimpleName tmp2 =(SimpleName) node2;
-                if (tmp1.resolveTypeBinding() == null || tmp2.resolveTypeBinding() == null) {
+                if (tmp1.isDeclaration() && tmp2.isDeclaration()) {
                     continue;
                 }
-                if (!tmp1.resolveTypeBinding().getName().equals(tmp2.resolveTypeBinding().getName())) {
+                if (ASTUtils.canExtract(tmp1) && ASTUtils.canExtract(tmp2)
+                        && tmp1.resolveTypeBinding().getName().equals(tmp2.resolveTypeBinding().getName())
+                        && (ASTUtils.isConst(tmp1) && ASTUtils.isConst(tmp1))) {
+                    continue;
+                }
+                if (!tmp1.getIdentifier().equals(tmp2.getIdentifier())) {
                     return false;
                 }
             }
@@ -265,60 +285,111 @@ public abstract class AbstractModifier {
     }
 
 
-
     /* ------------------------- For Experiment ------------------------- */
 
     public void experiment() {
         // DETECT_RESULTを読み込む
-        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
+        List<CSVRecord> records = _getDetectResults();
         // modifyしていく
         for (CSVRecord record : records) {
-            String subjectId = record.get(0);
-            String testId = record.get(1);
-            String className = record.get(2);
-            String originName = record.get(3);
-            String packageName = record.get(4);
-            // For AutoPut
-            createSubjectFile(project, subjectId, testId, className, originName, packageName, "AutoPut");
-            // For Original
-            createSubjectFile(project, subjectId, testId, className, originName, packageName, "Origin");
+            String packageName = record.get(0);
+            String className = record.get(1);
+            String testName = record.get(2);
+            String[] modes = {"AutoPut", "Origin"};
+            if (Files.exists(Paths.get(String.join("/", "jacoco", project.getProjectId(), packageName, className, testName, modes[0])))) {
+                continue;
+            }
+            for (String mode : modes) {
+                createSubjectFile(project, packageName, className, testName, mode);
+                ExperimentUtils.deploy(project.getProjectId(), packageName, className, testName, mode);
+                File subject = project.getProjectDir();
+                File mavenHome = project.getMavenHome();
+                int compile = -1;
+                try {
+                    System.out.println("Compile: " + className + "_" + testName);
+                    List<String> goal = Arrays.asList("test-compile");
+                    compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
+                    if (compile == 0) {
+                        System.out.println("Jacoco: " + className + "_" + testName);
+                        _deleteJacocoExec(project);
+                        goal = Arrays.asList("jacoco:prepare-agent", "test", "-Dtest=" + mode + "Test", "-DfailIfNoTests=false", "jacoco:report");
+                        compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
+                        if (compile == 0) {
+                            _copyJacocoHtml(project, packageName, className, testName, mode);
+                        } else {
+                            System.out.println("Test Failure");
+                            LOGGER.warn("Test Failure: {}" + (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
+                        }
+                    } else {
+                        System.out.println("Compile Failure");
+                        LOGGER.warn("Compile Failure: {}" + (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
+                        continue;
+                    }
+                } catch (MavenInvocationException e) {
+                    e.printStackTrace();
+                } finally {
+                    ExperimentUtils.delete(project.getProjectId(), packageName, mode);
+                }
+                ExperimentUtils.delete(project.getProjectId(), packageName, mode);
+            }
         }
     }
 
-    public void deploy() {
-        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
-        // modifyしていく
+    public void evaluation() {
+        // DETECT_RESULTを読み込む
+        List<CSVRecord> records = _getDetectResults();
+        int truePositive = 0;
+        int allSize = 0;
+        int numOfPut = 0;
+        int numOfCut = 0;
         for (CSVRecord record : records) {
-            String subjectId = record.get(0);
-            String testId = record.get(1);
-            String className = record.get(2);
-            String originName = record.get(3);
-            String packageName = record.get(4);
-            // For AutoPut
-            ExperimentUtils.deploy(project.getProjectId(), subjectId, testId, packageName, "AutoPut");
-            // For Original
-            ExperimentUtils.deploy(project.getProjectId(), subjectId, testId, packageName, "Origin");
+            String packageName = record.get(0);
+            String className = record.get(1);
+            String testName = record.get(2);
+            String content = _getJacocoHtml(project.getProjectId(), packageName, className, testName, "AutoPut");
+            if (content.equals("")) {
+                continue;
+            }
+            Document document = Jsoup.parse(content);
+            Element element = document.select("#coveragetable tfoot tr .ctr2").first();
+            int coverageAutoPut = Integer.parseInt(element.text().replace("%", ""));
+
+            content = _getJacocoHtml(project.getProjectId(), packageName, className, testName, "Origin");
+            if (content.equals("")) {
+                continue;
+            }
+            document = Jsoup.parse(content);
+            element = document.select("#coveragetable tfoot tr .ctr2").first();
+            int coverageOrigin = Integer.parseInt(element.text().replace("%", ""));
+
+            if (coverageAutoPut >= coverageOrigin) {
+                truePositive++;
+                numOfPut++;
+                numOfCut += record.size() - 2;
+            }
+            allSize++;
         }
+        System.out.println("All Size: " + allSize);
+        System.out.println("Precision: " + ((double) truePositive / allSize));
+        System.out.println("Average Num Of Cuts Per Put: " + ((double) numOfCut / numOfPut));
     }
 
-    public void delete() {
-        List<CSVRecord> records = Prepare.getExperimentalSubjects(project.getProjectId());
-        // modifyしていく
-        for (CSVRecord record : records) {
-            String subjectId = record.get(0);
-            String testId = record.get(1);
-            String className = record.get(2);
-            String originName = record.get(3);
-            String packageName = record.get(4);
-            // For AutoPut
-            ExperimentUtils.delete(project.getProjectId(), subjectId, testId, packageName, "AutoPut");
-            // For Original
-            ExperimentUtils.delete(project.getProjectId(), subjectId, testId, packageName, "Origin");
-        }
-    }
 
     /* -------------------------- Private --------------------------------- */
 
+    private String _getJacocoHtml(String project, String packageName, String className, String testName, String mode) {
+        String content = "";
+        try {
+            content = Files.lines(
+                    Paths.get(
+                            String.join("/", "jacoco", project, packageName, className, testName, mode, "index.html")),
+                            Charset.forName("UTF-8")
+            ).collect(Collectors.joining(System.getProperty("line.separator")));
+        } catch (IOException e) {
+            // do nothing
+        }
+        return content;
+    }
     private List<CSVRecord> _getDetectResults() {
         List<CSVRecord> ret = new ArrayList<>();
         try (BufferedReader br = Files.newBufferedReader(Paths.get(getDetectResultPath()), StandardCharsets.UTF_8)) {
@@ -329,4 +400,43 @@ public abstract class AbstractModifier {
         }
         return ret;
     }
+
+    protected void _outputConvertResult(String packageName, String className, String methodName, String content) {
+        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(getConvertResultDir() + "/"
+                + packageName + "/" + className + "/" + methodName + ".txt"))) {
+            bw.write(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void _deleteJacocoExec(Project project) {
+        try {
+            Files.deleteIfExists(Paths.get(
+                    String.join("/", project.getProjectDir().getPath(), "target", "jacoco.exec")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void _copyJacocoHtml(Project project, String packageName, String className, String testName, String mode) {
+        if (!Files.exists(Paths.get(String.join("/", "jacoco", project.getProjectId(), packageName, className, testName, mode)))) {
+            try {
+                Files.createDirectories(Paths.get(
+                        String.join("/", "jacoco", project.getProjectId(), packageName, className, testName, mode)));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            Files.copy(
+                    Paths.get(String.join("/", project.getProjectDir().getPath(), "target", "site", "jacoco", "index.html")),
+                    Paths.get(String.join("/", "jacoco", project.getProjectId(), packageName, className, testName, mode, "index.html")),
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

@@ -20,13 +20,46 @@ public class ASTUtils {
         return ast.newModifier(Modifier.ModifierKeyword.STATIC_KEYWORD);
     }
 
+    public static boolean isTestMethod(MethodDeclaration method) {
+        if (ASTUtils.hasTestAnnotation(method.modifiers())) {
+            return true;
+        }
+        if (ASTUtils.hasPublicModifier(method.modifiers())
+                && ASTUtils.isVoidReturn(method)
+                && (method.getName().getIdentifier().startsWith("test") || method.getName().getIdentifier().endsWith("test"))
+                && method.parameters().size() == 0) {
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean isVoidReturn(MethodDeclaration method) {
+        if (method.getReturnType2() == null) {
+            return false;
+        }
+        if (!method.getReturnType2().isPrimitiveType()) {
+            return false;
+        }
+        PrimitiveType primitiveType = (PrimitiveType) method.getReturnType2();
+        return primitiveType.getPrimitiveTypeCode().equals(PrimitiveType.VOID);
+    }
+
     public static boolean canExtract(Expression expression) {
         if (expression instanceof BooleanLiteral) return true;
         if (expression instanceof CharacterLiteral) return true;
         if (expression instanceof NumberLiteral) return true;
         if (expression instanceof StringLiteral) return true;
+
         ITypeBinding iTypeBinding = expression.resolveTypeBinding();
-        return true;
+        if (iTypeBinding == null) return false;
+
+        String type = iTypeBinding.getName();
+        if (type.equals("boolean") || type.equals("char") || type.equals("byte")
+                || type.equals("short") || type.equals("int") || type.equals("long")
+                || type.equals("float") || type.equals("double") || type.equals("String")) {
+            return true;
+        }
+        return false;
     }
 
     public static SingleMemberAnnotation getRunWithAnnotation(AST ast) {
@@ -79,9 +112,7 @@ public class ASTUtils {
         for (int i = 0; i < nodes1.size(); i++) {
             ASTNode node1 = nodes1.get(i);
             ASTNode node2 = nodes2.get(i);
-            if (!node1.getClass().equals(node2.getClass())) {
-                ret.add(node2);
-            } else if (node1 instanceof BooleanLiteral) {
+            if (node1 instanceof BooleanLiteral) {
                 BooleanLiteral booleanLiteral1 = (BooleanLiteral) node1;
                 BooleanLiteral booleanLiteral2 = (BooleanLiteral) node2;
                 if (booleanLiteral1.booleanValue() != booleanLiteral2.booleanValue()) {
@@ -105,21 +136,27 @@ public class ASTUtils {
                 if (!stringLiteral1.getLiteralValue().equals(stringLiteral2.getLiteralValue())) {
                     ret.add(node2);
                 }
-            } else if (node1 instanceof QualifiedName) {
-                QualifiedName qualifiedName1 = (QualifiedName) node1;
-                QualifiedName qualifiedName2 = (QualifiedName) node2;
-                if (qualifiedName1.getQualifier().toString().equals(qualifiedName2.getQualifier().toString())
-                        && !qualifiedName1.getName().toString().equals(qualifiedName2.getName().toString())) {
-                    ITypeBinding iTypeBinding1 = qualifiedName1.resolveTypeBinding();
-                    ITypeBinding iTypeBinding2 = qualifiedName2.resolveTypeBinding();
-                    if (_sameType(iTypeBinding1, iTypeBinding2)) {
-                        ret.add(qualifiedName2);
-                    }
+            } else if (node1 instanceof SimpleName) {
+                SimpleName simpleName1 = (SimpleName) node1;
+                SimpleName simpleName2 = (SimpleName) node2;
+                if (canExtract(simpleName1) && canExtract(simpleName2)
+                        && simpleName1.resolveTypeBinding().getName().equals(simpleName2.resolveBinding().getName())
+                        && ASTUtils.isConst(simpleName1) && ASTUtils.isConst(simpleName1)) {
+                    ret.add(node2);
                 }
             }
         }
         return ret;
     }
+
+    public static boolean isConst(Name name) {
+        if (name.resolveBinding() == null || !(name.resolveBinding() instanceof IVariableBinding)) {
+            return false;
+        }
+        IVariableBinding iVariableBinding = (IVariableBinding) name.resolveBinding();
+        return iVariableBinding.getConstantValue() != null;
+    }
+
 
     public static List<MethodInvocation> getAllAssertions(ASTNode node) {
         AllAssertionVisitor visitor = new AllAssertionVisitor();
@@ -530,5 +567,12 @@ public class ASTUtils {
             return false;
         }
         return binding1.getName().equals(binding2.getName());
+    }
+
+    private Name _getRootName(Name name) {
+        if (!(name.getParent() instanceof Name)) {
+            return name;
+        }
+        return _getRootName((Name) name.getParent());
     }
 }

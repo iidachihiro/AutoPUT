@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -218,30 +219,21 @@ public class Prepare {
         System.out.println("Project: " + projectId);
         try {
             Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
-            List<CSVRecord> records = getExperimentalSubjects(projectId);
-            Path beforeFilePath = null;
+            List<CSVRecord> records = getDetectResults(projectId);
             for (CSVRecord record : records) {
-                if (beforeFilePath != null) {
-                    deleteFile(beforeFilePath);
-                }
-                String className = record.get(2);
-                String originName = record.get(3);
-                String packageName = record.get(4);
+                String packageName = record.get(0);
+                String className = record.get(1);
+                String originName = record.get(2);
                 Path path = getPathOfAutoPut(projectId, packageName);
-                beforeFilePath = path;
-
-                String content = getConvertedTest(projectId, className, originName);
+                String content = getConvertedTest(projectId, packageName, className, originName);
                 deleteFile(path);
                 createFile(path, content);
                 File subject = project.getProjectDir();
                 File mavenHome = project.getMavenHome();
                 try {
                     System.out.println("Compile: " + className + "_" + originName);
-                    int result = MavenUtils.testCompile(projectId, subject, mavenHome, className + "_" + originName);
-                    if (result != 0) {
-                        // build failure
-                        return;
-                    }
+                    List<String> goal = Arrays.asList("test-compile");
+                    MavenUtils.maven(projectId, subject, goal, mavenHome, packageName + "/" + className + "/" + originName + ".txt");
                 } catch (MavenInvocationException e) {
                     e.printStackTrace();
                 }
@@ -266,7 +258,7 @@ public class Prepare {
                 String originName = record.get(1);
                 String packageName = record.get(2);
                 Path path = getPathOfAutoPut(projectId, packageName);
-                String content = getConvertedTest(projectId, className, originName);
+                String content = getConvertedTest(projectId, packageName, className, originName);
                 deleteFile(path);
                 createFile(path, content);
                 File subject = project.getProjectDir();
@@ -313,10 +305,10 @@ public class Prepare {
         return records;
     }
 
-    private static String getConvertedTest(String project, String className, String originName) {
+    private static String getConvertedTest(String project, String packageName, String className, String originName) {
         String content = "";
         try {
-            content =  Files.lines(Paths.get(String.join("/", "output", project, "convert", className, originName + ".txt"))
+            content =  Files.lines(Paths.get(String.join("/", "output", project, "convert", packageName, className, originName + ".txt"))
                     , Charset.forName("UTF-8")).collect(Collectors.joining(System.getProperty("line.separator")));
         } catch (IOException e) {
             e.printStackTrace();

@@ -6,16 +6,17 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
 
 public class MavenUtils {
     static Logger LOGGER = LoggerFactory.getLogger(MavenUtils.class);
 
     public static final String FILENAME_POM = "pom.xml";
 
-    public static int testCompile(String project, File subject, File mavenHome, String autoPutTest) throws MavenInvocationException {
+    public static int maven(String project, File subject, List<String> goal, File mavenHome, String autoPutTest) throws MavenInvocationException {
         InvocationRequest request = new DefaultInvocationRequest();
         request.setPomFile(new File(subject, FILENAME_POM));
-        request.setGoals(Arrays.asList("test-compile"));
+        request.setGoals(goal);
         Invoker invoker = new DefaultInvoker();
         invoker.setMavenHome(mavenHome);
         invoker.setOutputHandler(new InvocationOutputHandler() {

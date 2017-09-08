@@ -10,73 +10,65 @@ import java.util.stream.Collectors;
 
 public class ExperimentUtils {
 
-    public static Path getSubjectFilePath(String project, String subjectId, String testId, String mode) {
-        return Paths.get(String.join("/", "experiment", "subject", project ,subjectId, getSubjectName(subjectId, testId, mode) + ".java"));
+    public static Path getSubjectFilePath(String project, String packageName, String className, String testName, String mode) {
+        return Paths.get(String.join("/", "experiment", project ,packageName, className, testName, mode, mode + "Test.java"));
     }
-    public static void createSubjectFileDirs(String project, String subjectId, String testId, String mode) {
-        if (Files.exists(getSubjectFilePath(project, subjectId, testId, mode))) {
+    public static void createSubjectFileDirs(String project, String packageName, String className, String testName, String mode) {
+        if (Files.exists(getSubjectFilePath(project, packageName, className, testName, mode))) {
             return;
         }
         try {
-            Files.createDirectories(Paths.get(String.join("/", "experiment", "subject", project ,subjectId)));
-            Files.createFile(getSubjectFilePath(project, subjectId, testId, mode));
+            Files.createDirectories(Paths.get(String.join("/", "experiment", project ,packageName, className, testName, mode)));
+            Files.createFile(getSubjectFilePath(project, packageName, className, testName, mode));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    public static String getSubjectName(String subjectId, String testId, String mode) {
-        return String.join("_", mode, "Subject" + subjectId, testId);
-    }
-    public static Path getDeployPath(String project, String subjectId, String testId, String packageName, String mode) {
-        String testPath;
-        if (project.equals("jdom")) {
-            testPath = "test/src/java";
-        } else {
-            testPath = "src/test/java/";
+    public static Path getDeployPath(String project, String packageName, String mode) {
+
+        String testPath = "src/test/java/";
+        if (project.equals("commons-chain")) {
+            testPath = "base/src/test/java/";
+        } else if (project.equals("commons-digester")) {
+            testPath = "core/src/test/java/";
         }
-        return Paths.get(String.join("/", "usersubjects", project, mode,
-                subjectId, project, testPath, packageName.replace(".", "/"), getSubjectName(subjectId, testId, mode) + ".java"));
+        return Paths.get(String.join("/", "subjects", project, testPath, packageName.replace(".", "/"), mode + "Test.java"));
     }
 
-    public static Path getWrongDeployPath(String project, String subjectId, String testId, String packageName, String mode) {
-        String testPath;
-        if (project.equals("jdom")) {
-            testPath = "test/src/java";
-        } else {
-            testPath = "src/test/java/";
-        }
-        return Paths.get(String.join("/", "usersubjects", project, mode,
-                subjectId, project, testPath, packageName.replace(".", "/")) + getSubjectName(subjectId, testId, mode) + ".java");
-    }
-
-    public static void outputConvertResult(String project, String subjectId, String testId, String mode, String content) {
-        try (BufferedWriter bw = Files.newBufferedWriter(getSubjectFilePath(project, subjectId, testId, mode))) {
+    public static void outputConvertResult(String project, String packageName, String className, String testName, String mode, String content) {
+        try (BufferedWriter bw = Files.newBufferedWriter(getSubjectFilePath(project, packageName, className, testName, mode))) {
             bw.write(content);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static void deploy(String project, String subjectId, String testId, String packageName, String mode) {
-        try (BufferedWriter bw = Files.newBufferedWriter(getDeployPath(project, subjectId, testId, packageName, mode))){
-            Files.deleteIfExists(getWrongDeployPath(project, subjectId, testId, packageName, mode));
-            String content = getModifiedContent(project, subjectId, testId, mode);
+    public static void deploy(String project, String packageName, String className, String testName, String mode) {
+        if (!Files.exists(getDeployPath(project, packageName, mode))) {
+            try {
+                Files.createFile(getDeployPath(project, packageName, mode));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try (BufferedWriter bw = Files.newBufferedWriter(getDeployPath(project, packageName, mode))){
+            String content = getModifiedContent(project, packageName, className, testName, mode);
             bw.write(content);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static void delete(String project, String subjectId, String testId, String packageName, String mode) {
+    public static void delete(String project, String packageName, String mode) {
         try {
-            Files.deleteIfExists(getDeployPath(project, subjectId, testId, packageName, mode));
+            Files.deleteIfExists(getDeployPath(project, packageName, mode));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static String getModifiedContent(String project, String subjectId, String testId, String mode) throws IOException {
-        return Files.lines(getSubjectFilePath(project, subjectId, testId, mode), Charset.forName("UTF-8"))
+    public static String getModifiedContent(String project, String packageName, String className, String testName, String mode) throws IOException {
+        return Files.lines(getSubjectFilePath(project, packageName, className, testName, mode), Charset.forName("UTF-8"))
                 .collect(Collectors.joining(System.getProperty("line.separator")));
     }
 }
