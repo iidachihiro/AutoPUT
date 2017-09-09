@@ -42,11 +42,11 @@ public class Evaluation {
     protected static final String CONVERTER_RESULTS = "converter_results.csv";
     protected static final String[] PROJECTS =
 //            {"commons-codec"};
-            {"commons-codec", "commons-collections", "commons-math", "joda-time", "jdom"};
+            {"commons-bcel", "commons-codec", "commons-compress", "commons-csv", "commons-digester", "commons-fileupload", "commons-math"};
     
     protected static final String[] THRESHOLDS =
-        {"6.0"};
-//        {"6.0", "7.0", "8.0", "9.0"};
+//        {"6.0"};
+        {"6.0", "7.0", "8.0", "9.0"};
 
     protected static Project project;
 
@@ -98,6 +98,7 @@ public class Evaluation {
             // Answer Results
             LOGGER.debug("getAnswers()");
             List<Pair<String, String>> answers = getAnswers();
+            System.out.println("-----------------------------------");
             System.out.println("Answer Size: " + answers.size());
             // AutoPUT Results
             LOGGER.debug("AutoPUT Results");
@@ -171,7 +172,7 @@ public class Evaluation {
                 System.out.println("Recall: " + ((double) truePositive / answerIds.size()  * 100));
                 System.out.println("Precision: " + ((double) truePositive / getSourcererCCResults(threshold).size()  * 100));
             }
-            System.out.println();
+            System.out.println("-----------------------------------");
         }
     }
 
@@ -238,7 +239,7 @@ public class Evaluation {
         }
         List<Pair<String, String>> ret = new ArrayList<>();
         for (CSVRecord record : records) {
-            for (int i = 1; i < record.size(); i++) {
+            for (int i = 2; i < record.size(); i++) {
                 for (int j = i + 1; j < record.size(); j++) {
                     ret.add(new ImmutablePair<>(record.get(i), record.get(j)));
                 }

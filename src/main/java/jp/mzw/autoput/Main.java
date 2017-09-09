@@ -33,10 +33,20 @@ public class Main {
         } else if (command.equals("evaluation")) {
             parameterizedModifier.evaluation();
         }  else if (command.equals("all")) {
+            long start = System.currentTimeMillis();
             parameterizedModifier.detect();
+            long detect_time = System.currentTimeMillis();
             parameterizedModifier.modify();
+            long convert_time = System.currentTimeMillis();
             parameterizedModifier.experiment();
             parameterizedModifier.evaluation();
+            long evaluation_time = System.currentTimeMillis();
+            System.out.println("====================================");
+            System.out.println(project.getProjectId());
+            System.out.println("Detect Time: " + ((detect_time - start) / 1000) + "s");
+            System.out.println("Convert Time: " + ((convert_time - start) / 1000) + "s");
+            System.out.println("Finish Time: " + ((evaluation_time - start) / 1000) + "s");
+            System.out.println("====================================");
         }  else {
             System.out.println("Wrong Command!");
         }

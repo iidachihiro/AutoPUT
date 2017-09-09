@@ -413,7 +413,7 @@ public abstract class AbstractModifier {
     private void _deleteJacocoExec(Project project) {
         try {
             Files.deleteIfExists(Paths.get(
-                    String.join("/", project.getProjectDir().getPath(), "target", "jacoco.exec")));
+                    String.join("/", _getJacocoOriginPath(project), "target", "jacoco.exec")));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -430,7 +430,7 @@ public abstract class AbstractModifier {
         }
         try {
             Files.copy(
-                    Paths.get(String.join("/", project.getProjectDir().getPath(), "target", "site", "jacoco", "index.html")),
+                    Paths.get(String.join("/", _getJacocoOriginPath(project), "target", "site", "jacoco", "index.html")),
                     Paths.get(String.join("/", "jacoco", project.getProjectId(), packageName, className, testName, mode, "index.html")),
                     StandardCopyOption.REPLACE_EXISTING
             );
@@ -439,4 +439,11 @@ public abstract class AbstractModifier {
         }
     }
 
+    private String _getJacocoOriginPath(Project project) {
+        if (project.getProjectId().equals("commons-digester")) {
+            return project.getProjectDir().getPath() + "/core";
+        } else {
+            return project.getProjectDir().getPath();
+        }
+    }
 }
