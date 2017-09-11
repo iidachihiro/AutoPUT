@@ -47,6 +47,8 @@ public class Main {
             System.out.println("Convert Time: " + ((convert_time - start) / 1000) + "s");
             System.out.println("Finish Time: " + ((evaluation_time - start) / 1000) + "s");
             System.out.println("====================================");
+        } else if (command.equals("compareNumOfStatements")) {
+            parameterizedModifier.compareNumOfStatements();
         }  else {
             System.out.println("Wrong Command!");
         }
