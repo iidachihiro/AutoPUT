@@ -1,3 +1,0 @@
-index_time, globalTokenPositionCreationTime,num_candidates, num_clonePairs, total_run_time, searchTime,timeSpentInSearchingCandidates,timeSpentInProcessResult,operation,sortTime_during_indexing
-2090,754,0,0,2856,0,0,0,index,131
-0,163,0,3688,7744,7335,0,0,search

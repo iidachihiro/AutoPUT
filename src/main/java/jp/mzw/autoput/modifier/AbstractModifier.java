@@ -14,7 +14,6 @@ import org.eclipse.jdt.core.dom.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +24,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -441,7 +439,9 @@ public abstract class AbstractModifier {
 
     private String _getJacocoOriginPath(Project project) {
         if (project.getProjectId().equals("commons-digester")) {
-            return project.getProjectDir().getPath() + "/core";
+            return String.join("/", project.getProjectDir().getPath(), "core");
+        } else if (project.getProjectId().equals("commons-chain")) {
+            return String.join("/", project.getProjectDir().getPath(), "base");
         } else {
             return project.getProjectDir().getPath();
         }
