@@ -4,7 +4,6 @@ import jp.mzw.autoput.ast.ASTUtils;
 import jp.mzw.autoput.core.Project;
 import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
-import jp.mzw.autoput.experiment.ExperimentUtils;
 import jp.mzw.autoput.experiment.Prepare;
 import org.apache.commons.csv.CSVRecord;
 import org.eclipse.jdt.core.dom.*;
@@ -16,10 +15,7 @@ import org.eclipse.text.edits.TextEdit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,7 +62,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         cu = getCompilationUnit();
         ast = cu.getAST();
         String methodName = method.getName().getIdentifier();
-        System.out.println(methodName);
+//        System.out.println(methodName);
         rewrite = ASTRewrite.create(ast);
         if (mode.equals("AutoPut")) {
             // テストメソッドを作成(既存のテストメソッドを修正する)
@@ -127,7 +123,7 @@ public class ParameterizedModifierBase extends AbstractModifier {
         cu = getCompilationUnit();
         ast = cu.getAST();
         String methodName = method.getName().getIdentifier();
-        System.out.println(methodName);
+//        System.out.println(methodName);
         rewrite = ASTRewrite.create(ast);
         // テストメソッドを作成(既存のテストメソッドを修正する)
         modifyTestMethod(method);
@@ -1119,7 +1115,13 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 }
             }
             IMethodBinding iMethodBinding = methodInvocation.resolveMethodBinding();
+            if (iMethodBinding == null) {
+                return false;
+            }
             ITypeBinding[] iTypeBindings = iMethodBinding.getParameterTypes();
+            if (iTypeBindings == null) {
+                return false;
+            }
             if (iTypeBindings.length - 1 < targetIndex) {
                 return false;
             }
@@ -1145,7 +1147,13 @@ public class ParameterizedModifierBase extends AbstractModifier {
                 return false;
             }
             IMethodBinding iMethodBinding = methodInvocation.resolveMethodBinding();
+            if (iMethodBinding == null) {
+                return false;
+            }
             ITypeBinding[] iTypeBindings = iMethodBinding.getParameterTypes();
+            if (iTypeBindings == null) {
+                return false;
+            }
             if (iTypeBindings.length - 1 < targetIndex) {
                 return false;
             }

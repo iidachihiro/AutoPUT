@@ -306,22 +306,62 @@ public abstract class AbstractModifier {
                 File mavenHome = project.getMavenHome();
                 int compile = -1;
                 try {
-                    System.out.println("Compile: " + className + "_" + testName);
+//                    System.out.println("Compile: " + className + "_" + testName);
                     List<String> goal = Arrays.asList("test-compile");
                     compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
                     if (compile == 0) {
-                        System.out.println("Jacoco: " + className + "_" + testName);
+//                        System.out.println("Jacoco: " + className + "_" + testName);
                         _deleteJacocoExec(project);
                         goal = Arrays.asList("jacoco:prepare-agent", "test", "-Dtest=" + mode + "Test", "-DfailIfNoTests=false", "jacoco:report");
                         compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
                         if (compile == 0) {
                             _copyJacocoHtml(project, packageName, className, testName, mode);
                         } else {
-                            System.out.println("Test Failure");
+//                            System.out.println("Test Failure");
                             LOGGER.warn("Test Failure: {}" + (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
                         }
                     } else {
-                        System.out.println("Compile Failure");
+//                        System.out.println("Compile Failure");
+                        LOGGER.warn("Compile Failure: {}" + (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
+                        continue;
+                    }
+                } catch (MavenInvocationException e) {
+                    e.printStackTrace();
+                } finally {
+                    ExperimentUtils.delete(project.getProjectId(), packageName, mode);
+                }
+                ExperimentUtils.delete(project.getProjectId(), packageName, mode);
+            }
+        }
+    }
+
+    public void testCompile() {
+        // DETECT_RESULTを読み込む
+        List<CSVRecord> records = _getDetectResults();
+        // modifyしていく
+        for (CSVRecord record : records) {
+            String packageName = record.get(0);
+            String className = record.get(1);
+            String testName = record.get(2);
+            String[] modes = {"AutoPut", "Origin"};
+            if (Files.exists(Paths.get(String.join("/", "jacoco", project.getProjectId(), packageName, className, testName, modes[0])))) {
+                continue;
+            }
+            for (String mode : modes) {
+                createSubjectFile(project, packageName, className, testName, mode);
+                ExperimentUtils.deploy(project.getProjectId(), packageName, className, testName, mode);
+                File subject = project.getProjectDir();
+                File mavenHome = project.getMavenHome();
+                int compile = -1;
+                try {
+//                    System.out.println("Compile: " + className + "_" + testName);
+                    List<String> goal = Arrays.asList("test-compile");
+                    compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
+                    if (compile == 0) {
+//                        System.out.println("Jacoco: " + className + "_" + testName);
+                        _deleteJacocoExec(project);
+                    } else {
+//                        System.out.println("Compile Failure");
                         LOGGER.warn("Compile Failure: {}" + (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
                         continue;
                     }
@@ -367,11 +407,8 @@ public abstract class AbstractModifier {
             }
 
             // Count AutoPut's
-            try {
-                createSubjectFile(project, packageName, className, testName, "AutoPut");
-            } catch (NullPointerException e) {
-                continue;
-            }
+
+            createSubjectFile(project, packageName, className, testName, "AutoPut");
             ExperimentUtils.deploy(project.getProjectId(), packageName, className, testName, "AutoPut");
             project.prepare();
             int autoPutCount = 0;
@@ -386,7 +423,7 @@ public abstract class AbstractModifier {
                     if (!testCase.getMethodDeclaration().getName().getIdentifier().equals("autoPutTest")) {
                         continue;
                     }
-                    System.out.println(testCase.getMethodDeclaration().getName().getIdentifier());
+//                    System.out.println(testCase.getMethodDeclaration().getName().getIdentifier());
                     autoPutCount += ASTUtils.countNumOfStatements(testCase.getMethodDeclaration());
                 }
             }

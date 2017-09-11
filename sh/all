@@ -1,0 +1,16 @@
+#!/bin/bash
+
+SUBJECTS=()
+
+${SUBJECTS}+=("commons-bcel")
+${SUBJECTS}+=("commons-codec")
+${SUBJECTS}+=("commons-compress")
+${SUBJECTS}+=("commons-csv")
+${SUBJECTS}+=("commons-digester")
+${SUBJECTS}+=("commons-fileupload")
+${SUBJECTS}+=("commons-math")
+
+for SUBJECT in "${SUBJECTS[@]}"
+do
+  sh/run ${SUBJECT} all
+done

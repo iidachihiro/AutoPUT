@@ -49,6 +49,8 @@ public class Main {
             System.out.println("====================================");
         } else if (command.equals("compareNumOfStatements")) {
             parameterizedModifier.compareNumOfStatements();
+        } else if (command.equals("testCompile")) {
+            parameterizedModifier.testCompile();
         }  else {
             System.out.println("Wrong Command!");
         }
