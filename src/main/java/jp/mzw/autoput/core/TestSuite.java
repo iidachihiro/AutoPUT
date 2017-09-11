@@ -77,7 +77,7 @@ public class TestSuite {
     }
 
     public String getTestSources() throws IOException {
-        return Files.lines(Paths.get(testFile.getPath()), Charset.forName("UTF-8"))
+        return Files.lines(Paths.get(testFile.getPath()))
                 .collect(Collectors.joining(System.getProperty("line.separator")));
     }
 

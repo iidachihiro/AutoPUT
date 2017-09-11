@@ -71,4 +71,18 @@ public class ExperimentUtils {
         return Files.lines(getSubjectFilePath(project, packageName, className, testName, mode), Charset.forName("UTF-8"))
                 .collect(Collectors.joining(System.getProperty("line.separator")));
     }
+
+    public String getJacocoHtml(String project, String packageName, String className, String testName, String mode) {
+        String content = "";
+        try {
+            content = Files.lines(
+                    Paths.get(
+                            String.join("/", "jacoco", project, packageName, className, testName, mode, "index.html")),
+                    Charset.forName("UTF-8")
+            ).collect(Collectors.joining(System.getProperty("line.separator")));
+        } catch (IOException e) {
+            // do nothing
+        }
+        return content;
+    }
 }
