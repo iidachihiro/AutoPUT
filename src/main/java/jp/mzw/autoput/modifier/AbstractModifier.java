@@ -9,6 +9,7 @@ import jp.mzw.autoput.maven.MavenUtils;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.eclipse.jdt.core.dom.*;
 import org.jsoup.Jsoup;
@@ -135,7 +136,7 @@ public abstract class AbstractModifier {
                         String content = new ParameterizedModifierBase(project, testSuite).experimentalModify(testCase.getMethodDeclaration(), mode);
                         ExperimentUtils.outputConvertResult(project.getProjectId(), packageName, className, testName, mode, content);
                     } catch (NullPointerException e) {
-                        e.printStackTrace();
+                        throw new NullPointerException();
                     }
                     break;
                 }
@@ -344,12 +345,7 @@ public abstract class AbstractModifier {
             String packageName = record.get(0);
             String className = record.get(1);
             String testName = record.get(2);
-            if (testName.equals("testDegenerateNoFailures")) {
-                continue;
-            }
-            if (testName.equals("testDimension3")) {
-                continue;
-            }
+            
             String[] modes = {"AutoPut", "Origin"};
             // Coverage を確認
             String content = _getJacocoHtml(project.getProjectId(), packageName, className, testName, "AutoPut");
@@ -371,7 +367,11 @@ public abstract class AbstractModifier {
             }
 
             // Count AutoPut's
-            createSubjectFile(project, packageName, className, testName, "AutoPut");
+            try {
+                createSubjectFile(project, packageName, className, testName, "AutoPut");
+            } catch (NullPointerException e) {
+                continue;
+            }
             ExperimentUtils.deploy(project.getProjectId(), packageName, className, testName, "AutoPut");
             project.prepare();
             int autoPutCount = 0;
