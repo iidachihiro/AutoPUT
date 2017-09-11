@@ -347,6 +347,9 @@ public abstract class AbstractModifier {
             if (testName.equals("testDegenerateNoFailures")) {
                 continue;
             }
+            if (testName.equals("testDimension3")) {
+                continue;
+            }
             String[] modes = {"AutoPut", "Origin"};
             // Coverage を確認
             String content = _getJacocoHtml(project.getProjectId(), packageName, className, testName, "AutoPut");
