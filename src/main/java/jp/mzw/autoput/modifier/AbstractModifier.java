@@ -344,6 +344,9 @@ public abstract class AbstractModifier {
             String packageName = record.get(0);
             String className = record.get(1);
             String testName = record.get(2);
+            if (testName.equals("testDegenerateNoFailures")) {
+                continue;
+            }
             String[] modes = {"AutoPut", "Origin"};
             // Coverage を確認
             String content = _getJacocoHtml(project.getProjectId(), packageName, className, testName, "AutoPut");
