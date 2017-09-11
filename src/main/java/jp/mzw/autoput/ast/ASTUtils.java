@@ -544,6 +544,11 @@ public class ASTUtils {
         return parent.getOperator().equals(PrefixExpression.Operator.MINUS);
     }
 
+    public static int countNumOfStatements(MethodDeclaration method) {
+        return countNumOfStatements(method.getBody());
+    }
+
+
     /*
     =========================== private ==================================
      */
@@ -574,5 +579,89 @@ public class ASTUtils {
             return name;
         }
         return _getRootName((Name) name.getParent());
+    }
+
+    private static int countNumOfStatements(Statement statement) {
+        if (statement instanceof AssertStatement) {
+            return 1;
+        } else if (statement instanceof Block) {
+            Block block = (Block) statement;
+            int sum = 1;
+            for (Statement stmt : (List<Statement>) block.statements()) {
+                sum += countNumOfStatements(stmt);
+            }
+            return sum;
+        } else if (statement instanceof BreakStatement) {
+            return 1;
+        } else if (statement instanceof ConstructorInvocation) {
+            return 1;
+        } else if (statement instanceof ContinueStatement) {
+            return 1;
+        } else if (statement instanceof DoStatement) {
+            DoStatement doStatement = (DoStatement) statement;
+            return 1 + countNumOfStatements(doStatement.getBody());
+        } else if (statement instanceof EmptyStatement) {
+            return 1;
+        } else if (statement instanceof EnhancedForStatement) {
+            EnhancedForStatement enhancedForStatement = (EnhancedForStatement) statement;
+            return 1 + countNumOfStatements(enhancedForStatement.getBody());
+        } else if (statement instanceof ExpressionStatement) {
+            return 1;
+        } else if (statement instanceof ForStatement) {
+            ForStatement forStatement = (ForStatement) statement;
+            return 1 + countNumOfStatements(forStatement.getBody());
+        } else if (statement instanceof IfStatement) {
+            IfStatement ifStatement = (IfStatement) statement;
+            int cnt = 1;
+            if (ifStatement.getElseStatement() != null) {
+                cnt += countNumOfStatements(ifStatement.getElseStatement());
+            }
+            return cnt + countNumOfStatements(ifStatement.getThenStatement());
+        } else if (statement instanceof LabeledStatement) {
+            LabeledStatement labeledStatement = (LabeledStatement) statement;
+            return 1 + countNumOfStatements(labeledStatement.getBody());
+        } else if (statement instanceof ReturnStatement) {
+            return 1;
+        } else if (statement instanceof SuperConstructorInvocation) {
+            return 1;
+        } else if (statement instanceof SwitchCase) {
+            return 1;
+        } else if (statement instanceof SwitchStatement) {
+            SwitchStatement switchStatement = (SwitchStatement) statement;
+            int cnt = 1;
+            for (Statement stmt : (List<Statement>) switchStatement.statements()) {
+                cnt += countNumOfStatements(stmt);
+            }
+            return cnt;
+        } else if (statement instanceof SynchronizedStatement) {
+            SynchronizedStatement synchronizedStatement = (SynchronizedStatement) statement;
+            return 1 + countNumOfStatements(synchronizedStatement.getBody());
+        } else if (statement instanceof ThrowStatement) {
+            return 1;
+        } else if (statement instanceof TryStatement) {
+            TryStatement tryStatement = (TryStatement) statement;
+            int cnt = 1;
+            if (tryStatement.catchClauses() != null) {
+                for (CatchClause catchClause : (List<CatchClause>) tryStatement.catchClauses()) {
+                    cnt += countNumOfStatements(catchClause.getBody());
+                }
+            }
+            if (tryStatement.getFinally() != null) {
+                cnt += countNumOfStatements(tryStatement.getFinally());
+            }
+            cnt += countNumOfStatements(tryStatement.getBody());
+            return cnt;
+        } else if (statement instanceof TypeDeclarationStatement) {
+            // TODO correct implementation
+            // this is only for measuring # of statements in method declaration.
+            return 1;
+        } else if (statement instanceof VariableDeclarationStatement) {
+            return 1;
+        } else if (statement instanceof WhileStatement) {
+            WhileStatement whileStatement = (WhileStatement) statement;
+            return  1 + countNumOfStatements(whileStatement.getBody());
+        } else {
+            return 0;
+        }
     }
 }

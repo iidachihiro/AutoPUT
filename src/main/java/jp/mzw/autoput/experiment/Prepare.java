@@ -61,6 +61,8 @@ public class Prepare {
         } else if (command.equals("morethan")) {
             int threshold = new Integer(args[1]);
             detectMoreThanTreshold(threshold);
+        } else if (command.equals("compare-statments")) {
+
         }
     }
 

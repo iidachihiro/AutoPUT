@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -333,6 +334,88 @@ public abstract class AbstractModifier {
         }
     }
 
+
+    public void compareNumOfStatements() {
+        List<String> contents = new ArrayList<>();
+        // DETECT_RESULTを読み込む
+        List<CSVRecord> records = _getDetectResults();
+        // modifyしていく
+        for (CSVRecord record : records) {
+            String packageName = record.get(0);
+            String className = record.get(1);
+            String testName = record.get(2);
+            String[] modes = {"AutoPut", "Origin"};
+            // Coverage を確認
+            String content = _getJacocoHtml(project.getProjectId(), packageName, className, testName, "AutoPut");
+            if (content.equals("")) {
+                continue;
+            }
+            Document document = Jsoup.parse(content);
+            Element element = document.select("#coveragetable tfoot tr .ctr2").first();
+            int coverageAutoPut = Integer.parseInt(element.text().replace("%", ""));
+            content = _getJacocoHtml(project.getProjectId(), packageName, className, testName, "Origin");
+            if (content.equals("")) {
+                continue;
+            }
+            document = Jsoup.parse(content);
+            element = document.select("#coveragetable tfoot tr .ctr2").first();
+            int coverageOrigin = Integer.parseInt(element.text().replace("%", ""));
+            if (coverageAutoPut < coverageOrigin) {
+                continue;
+            }
+
+            // Count AutoPut's
+            createSubjectFile(project, packageName, className, testName, "AutoPut");
+            ExperimentUtils.deploy(project.getProjectId(), packageName, className, testName, "AutoPut");
+            project.prepare();
+            int autoPutCount = 0;
+            for (TestSuite testSuite : project.getTestSuites()) {
+                if (!testSuite.getTestClassName().equals("AutoPutTest")) {
+                    continue;
+                }
+                if (!testSuite.getCu().getPackage().getName().toString().equals(packageName)) {
+                    continue;
+                }
+                for (TestCase testCase : testSuite.getTestCases()) {
+                    if (!testCase.getMethodDeclaration().getName().getIdentifier().equals("autoPutTest")) {
+                        continue;
+                    }
+                    autoPutCount += ASTUtils.countNumOfStatements(testCase.getMethodDeclaration());
+                }
+            }
+            ExperimentUtils.delete(project.getProjectId(), packageName, "AutoPut");
+
+            // Count Origin's
+            List<String> similarMethodNames = new ArrayList<>();
+            for (int i = 2; i < record.size(); i++) {
+                similarMethodNames.add(record.get(i));
+            }
+            int originCount = 0;
+            for (TestSuite testSuite : project.getTestSuites()) {
+                if (!testSuite.getTestClassName().equals(className)) {
+                    continue;
+                }
+                if (!testSuite.getCu().getPackage().getName().toString().equals(packageName)) {
+                    continue;
+                }
+                for (TestCase testCase : testSuite.getTestCases()) {
+                    if (!similarMethodNames.contains(testCase.getMethodDeclaration().getName().getIdentifier())) {
+                        continue;
+                    }
+                    originCount += ASTUtils.countNumOfStatements(testCase.getMethodDeclaration());
+                }
+            }
+
+            // add a data
+            String data = String.valueOf(autoPutCount) + "," + String.valueOf(originCount) + "\n";
+            contents.add(data);
+        }
+        _outputCompareNumOfStatements(project, contents);
+    }
+
+
+
+
     public void evaluation() {
         // DETECT_RESULTを読み込む
         List<CSVRecord> records = _getDetectResults();
@@ -407,6 +490,26 @@ public abstract class AbstractModifier {
             e.printStackTrace();
         }
     }
+
+    private void _outputCompareNumOfStatements(Project project, List<String> contents) {
+        Path path =
+                Paths.get(String.join("/", "experiment", project.getProjectId(), "countNumOfStatements.csv"));
+        if (!Files.exists(path)) {
+            try {
+                Files.createFile(path);
+            } catch (IOException e) {
+                // do nothing
+            }
+        }
+        try (BufferedWriter bw = Files.newBufferedWriter(path)) {
+            for (String content : contents) {
+                bw.write(content);
+            }
+        } catch (IOException e) {
+            // do nothing
+        }
+    }
+
 
     private void _deleteJacocoExec(Project project) {
         try {
