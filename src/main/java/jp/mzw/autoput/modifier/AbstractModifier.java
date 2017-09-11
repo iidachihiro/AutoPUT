@@ -380,6 +380,7 @@ public abstract class AbstractModifier {
                     if (!testCase.getMethodDeclaration().getName().getIdentifier().equals("autoPutTest")) {
                         continue;
                     }
+                    System.out.println(testCase.getMethodDeclaration().getName().getIdentifier());
                     autoPutCount += ASTUtils.countNumOfStatements(testCase.getMethodDeclaration());
                 }
             }

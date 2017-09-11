@@ -62,6 +62,10 @@ public class TestSuite {
         cu.accept(visitor);
         List<MethodDeclaration> methods = visitor.getFoundMethods();
         for (MethodDeclaration method : methods) {
+            if (method.getName().getIdentifier().equals("autoPutTest")) {
+                TestCase testcase = new TestCase(method.getName().getIdentifier(), testClassName, method, cu, this);
+                testCases.add(testcase);
+            }
             if (!ASTUtils.isTestMethod(method)) {
                 continue;
             }
