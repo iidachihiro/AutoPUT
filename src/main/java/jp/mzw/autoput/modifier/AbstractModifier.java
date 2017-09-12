@@ -306,23 +306,26 @@ public abstract class AbstractModifier {
                 File mavenHome = project.getMavenHome();
                 int compile = -1;
                 try {
-//                    System.out.println("Compile: " + className + "_" + testName);
                     List<String> goal = Arrays.asList("test-compile");
                     compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
                     if (compile == 0) {
-//                        System.out.println("Jacoco: " + className + "_" + testName);
                         _deleteJacocoExec(project);
                         goal = Arrays.asList("jacoco:prepare-agent", "test", "-Dtest=" + mode + "Test", "-DfailIfNoTests=false", "jacoco:report");
                         compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
                         if (compile == 0) {
                             _copyJacocoHtml(project, packageName, className, testName, mode);
+                            // Pitest
+                            goal = Arrays.asList("org.pitest:pitest-maven:mutationCoverage", "-DfailWhenNoMutations=false", "-DtimestampedReports=false", "-DtargetTests=" + packageName + mode + "Test",
+                                    "-DreportsDirectory=pitest/" + String.join("/", project.getProjectId(), packageName, className, testName, mode));
+                            compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
+                            if (compile != 0) {
+                                LOGGER.warn("Pit Failure: {}", (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
+                            }
                         } else {
-//                            System.out.println("Test Failure");
-                            LOGGER.warn("Test Failure: {}" + (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
+                            LOGGER.warn("Jacoco Failure: {}", (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
                         }
                     } else {
-//                        System.out.println("Compile Failure");
-                        LOGGER.warn("Compile Failure: {}" + (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
+                        LOGGER.warn("Compile Failure: {}", (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
                         continue;
                     }
                 } catch (MavenInvocationException e) {
@@ -467,6 +470,7 @@ public abstract class AbstractModifier {
             String packageName = record.get(0);
             String className = record.get(1);
             String testName = record.get(2);
+            // Check Jacoco
             String content = _getJacocoHtml(project.getProjectId(), packageName, className, testName, "AutoPut");
             if (content.equals("")) {
                 continue;
@@ -483,7 +487,25 @@ public abstract class AbstractModifier {
             element = document.select("#coveragetable tfoot tr .ctr2").first();
             int coverageOrigin = Integer.parseInt(element.text().replace("%", ""));
 
-            if (coverageAutoPut >= coverageOrigin) {
+            // Check Pitest
+            content = _getPitestHtml(project.getProjectId(), packageName, className, testName, "AutoPut");
+            if (content.equals("")) {
+                continue;
+            }
+            document = Jsoup.parse(content);
+            element = document.select(".coverage_ledgend").get(1);
+            int numKilledMutAutoPut = Integer.parseInt(element.text().replace("%", ""));
+
+            content = _getPitestHtml(project.getProjectId(), packageName, className, testName, "Origin");
+            if (content.equals("")) {
+                continue;
+            }
+            document = Jsoup.parse(content);
+            element = document.select(".coverage_ledgend").get(1);
+            int numKilledMutOrigin = Integer.parseInt(element.text().split("/")[0]);
+
+            if ((coverageAutoPut >= coverageOrigin)
+                    && (numKilledMutAutoPut >= numKilledMutOrigin)) {
                 truePositive++;
                 numOfPut++;
                 numOfCut += record.size() - 2;
@@ -505,6 +527,20 @@ public abstract class AbstractModifier {
                     Paths.get(
                             String.join("/", "jacoco", project, packageName, className, testName, mode, "index.html")),
                             Charset.forName("UTF-8")
+            ).collect(Collectors.joining(System.getProperty("line.separator")));
+        } catch (IOException e) {
+            // do nothing
+        }
+        return content;
+    }
+
+    private String _getPitestHtml(String project, String packageName, String className, String testName, String mode) {
+        String content = "";
+        try {
+            content = Files.lines(
+                    Paths.get(
+                            String.join("/", "pitest", project, packageName, className, testName, mode, "index.html")),
+                    Charset.forName("UTF-8")
             ).collect(Collectors.joining(System.getProperty("line.separator")));
         } catch (IOException e) {
             // do nothing
