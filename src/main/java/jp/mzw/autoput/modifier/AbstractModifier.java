@@ -9,7 +9,6 @@ import jp.mzw.autoput.maven.MavenUtils;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.eclipse.jdt.core.dom.*;
 import org.jsoup.Jsoup;
@@ -316,9 +315,11 @@ public abstract class AbstractModifier {
                             _copyJacocoHtml(project, packageName, className, testName, mode);
                             // Pitest
                             goal = Arrays.asList("org.pitest:pitest-maven:mutationCoverage", "-DfailWhenNoMutations=false", "-DtimestampedReports=false", "-DtargetTests=" + packageName + mode + "Test",
-                                    "-DreportsDirectory=pitest/" + String.join("/", project.getProjectId(), packageName, className, testName, mode));
+                                    "-DreportsDirectory=pitest/" + String.join("/", packageName, className, testName, mode));
                             compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
                             if (compile != 0) {
+                                _copyPitestHtml(project, packageName, className, testName, mode);
+                            } else {
                                 LOGGER.warn("Pit Failure: {}", (packageName + "/" + className + "/" + testName + "/" + mode + "Test.java"));
                             }
                         } else {
@@ -590,7 +591,7 @@ public abstract class AbstractModifier {
     private void _deleteJacocoExec(Project project) {
         try {
             Files.deleteIfExists(Paths.get(
-                    String.join("/", _getJacocoOriginPath(project), "target", "jacoco.exec")));
+                    String.join("/", _getBuildOriginPath(project), "target", "jacoco.exec")));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -607,7 +608,7 @@ public abstract class AbstractModifier {
         }
         try {
             Files.copy(
-                    Paths.get(String.join("/", _getJacocoOriginPath(project), "target", "site", "jacoco", "index.html")),
+                    Paths.get(String.join("/", _getBuildOriginPath(project), "target", "site", "jacoco", "index.html")),
                     Paths.get(String.join("/", "jacoco", project.getProjectId(), packageName, className, testName, mode, "index.html")),
                     StandardCopyOption.REPLACE_EXISTING
             );
@@ -616,7 +617,27 @@ public abstract class AbstractModifier {
         }
     }
 
-    private String _getJacocoOriginPath(Project project) {
+    private void _copyPitestHtml(Project project, String packageName, String className, String testName, String mode) {
+        if (!Files.exists(Paths.get(String.join("/", "pitest", project.getProjectId(), packageName, className, testName, mode)))) {
+            try {
+                Files.createDirectories(Paths.get(
+                        String.join("/", "pitest", project.getProjectId(), packageName, className, testName, mode)));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            Files.copy(
+                    Paths.get(String.join("/", _getBuildOriginPath(project), "pitest", packageName, className, testName, mode, "index.html")),
+                    Paths.get(String.join("/", "pitest", project.getProjectId(), packageName, className, testName, mode, "index.html")),
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String _getBuildOriginPath(Project project) {
         if (project.getProjectId().equals("commons-digester")) {
             return String.join("/", project.getProjectDir().getPath(), "core");
         } else if (project.getProjectId().equals("commons-chain")) {
