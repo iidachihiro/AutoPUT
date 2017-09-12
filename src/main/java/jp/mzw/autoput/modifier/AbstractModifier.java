@@ -419,12 +419,8 @@ public abstract class AbstractModifier {
                 if (!testSuite.getCu().getPackage().getName().toString().equals(packageName)) {
                     continue;
                 }
-                for (TestCase testCase : testSuite.getTestCases()) {
-                    if (!testCase.getMethodDeclaration().getName().getIdentifier().equals("autoPutTest")) {
-                        continue;
-                    }
-//                    System.out.println(testCase.getMethodDeclaration().getName().getIdentifier());
-                    autoPutCount += ASTUtils.countNumOfStatements(testCase.getMethodDeclaration());
+                if (testSuite.getAutoPutTest() != null) {
+                    autoPutCount += ASTUtils.countNumOfStatements(testSuite.getAutoPutTest());
                 }
             }
             ExperimentUtils.delete(project.getProjectId(), packageName, "AutoPut");

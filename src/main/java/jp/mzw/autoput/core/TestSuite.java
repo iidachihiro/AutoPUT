@@ -29,6 +29,8 @@ public class TestSuite {
     protected CompilationUnit cu;
     protected TypeDeclaration clazz;
 
+    private MethodDeclaration autoPutTest;
+
     public TestSuite(File testFile, CompilationUnit cu) {
         this.testFile = testFile;
         String pathToTestFile = testFile.getAbsolutePath().substring(testFile.getParent().length() + 1);
@@ -36,6 +38,7 @@ public class TestSuite {
 
         this.testCases = new ArrayList<>();
         this.cu = cu;
+        this.autoPutTest = null;
         prepare();
         setClass();
     }
@@ -56,16 +59,19 @@ public class TestSuite {
     public TypeDeclaration getClassDeclaration() {
         return this.clazz;
     }
+    public MethodDeclaration getAutoPutTest() {
+        return this.autoPutTest;
+    }
 
     private void prepare() {
         AllMethodFindVisitor visitor = new AllMethodFindVisitor();
         cu.accept(visitor);
         List<MethodDeclaration> methods = visitor.getFoundMethods();
         for (MethodDeclaration method : methods) {
-//            if (method.getName().getIdentifier().equals("autoPutTest")) {
-//                TestCase testcase = new TestCase(method.getName().getIdentifier(), testClassName, method, cu, this);
-//                testCases.add(testcase);
-//            }
+            if (method.getName().getIdentifier().equals("autoPutTest")) {
+                this.autoPutTest = method;
+                continue;
+            }
             if (!ASTUtils.isTestMethod(method)) {
                 continue;
             }
