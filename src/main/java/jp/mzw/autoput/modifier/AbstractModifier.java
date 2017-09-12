@@ -314,7 +314,7 @@ public abstract class AbstractModifier {
                         if (compile == 0) {
                             _copyJacocoHtml(project, packageName, className, testName, mode);
                             // Pitest
-                            goal = Arrays.asList("org.pitest:pitest-maven:mutationCoverage", "-DfailWhenNoMutations=false", "-DtimestampedReports=false", "-DtargetTests=" + packageName + mode + "Test",
+                            goal = Arrays.asList("org.pitest:pitest-maven:mutationCoverage", "-DfailWhenNoMutations=false", "-DtimestampedReports=false", "-DtargetTests=" + packageName + "." + mode + "Test",
                                     "-DreportsDirectory=pitest/" + String.join("/", packageName, className, testName, mode));
                             compile = MavenUtils.maven(project.getProjectId(), subject, goal, mavenHome, packageName + "/" + className + "/" + testName + "/" + mode + "Test.java");
                             if (compile != 0) {
