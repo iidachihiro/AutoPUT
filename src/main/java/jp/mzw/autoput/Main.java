@@ -25,7 +25,10 @@ public class Main {
         Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
         ParameterizedModifier parameterizedModifier = new ParameterizedModifier(project);
         if (command.equals("detect")) {
+            long start = System.currentTimeMillis();
             parameterizedModifier.detect();
+            long detect_time = System.currentTimeMillis();
+            System.out.println("Detect Time: " + ((detect_time - start) / 1000) + "s");
         } else if (command.equals("convert")) {
             parameterizedModifier.modify();
         } else if (command.equals("experiment")) {

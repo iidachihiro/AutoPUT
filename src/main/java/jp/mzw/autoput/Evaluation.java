@@ -119,7 +119,9 @@ public class Evaluation {
             }
             System.out.println("Project: " + projectId);
             System.out.println("AutoPUT");
-            System.out.println("Detected Size: " + detected.size());
+            System.out.println("True Positive: " + truePositive);
+            System.out.println("False Positive: " + (detected.size() - truePositive));
+            System.out.println("False Negative: " + (answers.size() - truePositive));
             System.out.println("Recall: " + ((double) truePositive / answers.size()) * 100);
             System.out.println("Precision: " + ((double) truePositive / detected.size() * 100));
 
@@ -169,6 +171,9 @@ public class Evaluation {
                     }
                 }
                 System.out.println("Threshold: " + threshold);
+                System.out.println("True Positive: " + truePositive);
+                System.out.println("False Positive: " + (getSourcererCCResults(threshold).size() - truePositive));
+                System.out.println("False Negative: " + (answerIds.size() - truePositive));
                 System.out.println("Recall: " + ((double) truePositive / answerIds.size()  * 100));
                 System.out.println("Precision: " + ((double) truePositive / getSourcererCCResults(threshold).size()  * 100));
             }
