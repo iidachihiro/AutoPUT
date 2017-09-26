@@ -28,7 +28,7 @@ public class Main {
             long start = System.currentTimeMillis();
             parameterizedModifier.detect();
             long detect_time = System.currentTimeMillis();
-            System.out.println("Detect Time: " + ((detect_time - start) / 1000) + "s");
+            System.out.println("Detect Time: " + (detect_time - start) + "ms");
         } else if (command.equals("convert")) {
             parameterizedModifier.modify();
         } else if (command.equals("experiment")) {
