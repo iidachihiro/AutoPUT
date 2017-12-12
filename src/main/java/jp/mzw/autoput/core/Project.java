@@ -145,10 +145,4 @@ public class Project {
             }
         }
     }
-
-    public List<TestSuite> getParsedTestSuites() {
-        // returns test cases that are newly parsed.
-        prepare();
-        return getTestSuites();
-    }
 }
