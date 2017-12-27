@@ -1,8 +1,5 @@
 package jp.mzw.autoput.util;
 
-import org.eclipse.jdt.core.dom.Expression;
-import org.eclipse.jdt.core.dom.MethodInvocation;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;

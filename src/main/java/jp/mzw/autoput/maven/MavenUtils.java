@@ -13,9 +13,32 @@ public class MavenUtils {
 
     public static final String FILENAME_POM = "pom.xml";
 
-    public static int maven(String project, File subject, List<String> goal, File mavenHome, String autoPutTest) throws MavenInvocationException {
+    public static int testCompile(File projectHome, File mavenHome, String testName) {
+        List<String> goal = Arrays.asList("test-compile");
+        int ret = -1;
+        try {
+            ret = maven(projectHome, mavenHome, goal, testName);
+        } catch (MavenInvocationException e) {
+            LOGGER.error("MavenInvocationException is thrown at {}", testName);
+        }
+        return ret;
+    }
+
+    public static int measureCoverage(File projectHome, File mavenHome, String originName, String mode) {
+        // coverage measurement contains test execution.
+        List<String> goal = Arrays.asList("jacoco:prepare-agent", "test", "-Dtest=" + mode, "-DfailIfNoTests=false", "jacoco:report");
+        int ret = -1;
+        try {
+            ret = maven(projectHome, mavenHome, goal, originName);
+        } catch (MavenInvocationException e) {
+            LOGGER.error("MavenInvocationException is thrown at {}", originName);
+        }
+        return ret;
+    }
+
+    private static int maven(File projectHome, File mavenHome, List<String> goal, String testName) throws MavenInvocationException {
         InvocationRequest request = new DefaultInvocationRequest();
-        request.setPomFile(new File(subject, FILENAME_POM));
+        request.setPomFile(new File(projectHome, FILENAME_POM));
         request.setGoals(goal);
         Invoker invoker = new DefaultInvoker();
         invoker.setMavenHome(mavenHome);
@@ -23,9 +46,9 @@ public class MavenUtils {
             @Override
             public void consumeLine(String s) {
                 if (s.contains("[INFO] BUILD FAILURE")) {
-                    LOGGER.warn("BUILD FAILURE: {}", autoPutTest);
+                    LOGGER.warn("BUILD FAILURE: {}", testName);
                 } else if (s.contains("[INFO] BUILD SUCCESS")) {
-                    LOGGER.debug("BUILD SUCCESS: {}", autoPutTest);
+                    LOGGER.debug("BUILD SUCCESS: {}", testName);
                 }
             }
         });
@@ -33,9 +56,9 @@ public class MavenUtils {
             @Override
             public void consumeLine(String s) {
                 if (s.contains("[INFO] BUILD FAILURE")) {
-                    LOGGER.warn("BUILD FAILURE: {}", autoPutTest);
+                    LOGGER.warn("BUILD FAILURE: {}", testName);
                 } else if (s.contains("[INFO] BUILD SUCCESS")) {
-                    LOGGER.debug("BUILD SUCCESS: {}", autoPutTest);
+                    LOGGER.debug("BUILD SUCCESS: {}", testName);
                 }
             }
         });

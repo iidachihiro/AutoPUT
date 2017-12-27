@@ -2,59 +2,63 @@ package jp.mzw.autoput;
 
 import jp.mzw.autoput.core.Project;
 
-import jp.mzw.autoput.core.TestSuite;
-import jp.mzw.autoput.experiment.ExperimentUtils;
-import jp.mzw.autoput.modifier.ParameterizedModifier;
+import jp.mzw.autoput.detect.Detector;
+import jp.mzw.autoput.generate.Generator;
+import jp.mzw.autoput.requirement.RequirementChecker;
 import org.eclipse.jface.text.BadLocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Created by TK on 7/19/17.
  */
 public class Main {
-    static Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    public static final String CONFIG_FILENAME = "config.properties";
+    protected static final String CONFIG_FILENAME = "config.properties";
+
+    public final static String PUT = "AutoPUT";
+    public final static String CUT = "Original";
 
     public static void main(String[] args) throws IOException, BadLocationException {
         String projectId = args[0];
         String command   = args[1];
         Project project = new Project(projectId).setConfig(CONFIG_FILENAME);
-        ParameterizedModifier parameterizedModifier = new ParameterizedModifier(project);
         if (command.equals("detect")) {
             long start = System.currentTimeMillis();
-            parameterizedModifier.detect();
-            long detect_time = System.currentTimeMillis();
-            System.out.println("Detect Time: " + (detect_time - start) + "ms");
-        } else if (command.equals("convert")) {
-            parameterizedModifier.modify();
-        } else if (command.equals("experiment")) {
-            parameterizedModifier.experiment();
-        } else if (command.equals("evaluation")) {
-            parameterizedModifier.evaluation();
+            Detector detector = new Detector(project);
+            detector.detect();
+            long end = System.currentTimeMillis();
+            System.out.println("detection time on " + projectId + " : " + (end - start) + "ms");
+        } else if (command.equals("generate")) {
+            long start = System.currentTimeMillis();
+            Generator generator = new Generator(project);
+            generator.generate();
+            long end = System.currentTimeMillis();
+            System.out.println("generation time on " + projectId + " : " + (end - start) + "ms");
+        } else if (command.equals("requirement")) {
+            long start = System.currentTimeMillis();
+            RequirementChecker requirementChecker = new RequirementChecker(project);
+            requirementChecker.check();
+            long end = System.currentTimeMillis();
+            System.out.println("requirements checking time on " + projectId + " : " + (end - start) + "ms");
         }  else if (command.equals("all")) {
             long start = System.currentTimeMillis();
-            parameterizedModifier.detect();
-            long detect_time = System.currentTimeMillis();
-            parameterizedModifier.modify();
-            long convert_time = System.currentTimeMillis();
-            parameterizedModifier.experiment();
-            parameterizedModifier.evaluation();
-            long evaluation_time = System.currentTimeMillis();
+            Detector detector = new Detector(project);
+            detector.detect();
+            long detection_time = System.currentTimeMillis();
+            Generator generator = new Generator(project);
+            generator.generate();
+            long generation_time = System.currentTimeMillis();
+            RequirementChecker requirementChecker = new RequirementChecker(project);
+            requirementChecker.check();
+            long checking_time = System.currentTimeMillis();
             System.out.println("====================================");
             System.out.println(project.getProjectId());
-            System.out.println("Detect Time: " + ((detect_time - start) / 1000) + "s");
-            System.out.println("Convert Time: " + ((convert_time - start) / 1000) + "s");
-            System.out.println("Finish Time: " + ((evaluation_time - start) / 1000) + "s");
+            System.out.println("detection time: " + ((detection_time - start) / 1000) + "s");
+            System.out.println("generation time: " + ((generation_time + checking_time - start) / 1000) + "s");
             System.out.println("====================================");
-        } else if (command.equals("compareNumOfStatements")) {
-            parameterizedModifier.compareNumOfStatements();
-        } else if (command.equals("testCompile")) {
-            parameterizedModifier.testCompile();
-        }  else {
+        } else {
             System.out.println("Wrong Command!");
         }
     }

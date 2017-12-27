@@ -2,9 +2,7 @@ package jp.mzw.autoput;
 
 import jp.mzw.autoput.ast.ASTUtils;
 import jp.mzw.autoput.core.Project;
-import jp.mzw.autoput.core.TestCase;
 import jp.mzw.autoput.core.TestSuite;
-import jp.mzw.autoput.modifier.AbstractModifier;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
