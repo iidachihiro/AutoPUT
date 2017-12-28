@@ -30,7 +30,7 @@ And, clone subject projects you would like to parameterize unit tests to `subjec
 
 ### Run
 
-We provide a script for one-command-line.
+We provide a script for one-line-command.
 You can use AutoPUT with ease as below.
 
 1. For detecting CUTs to be parameterized.

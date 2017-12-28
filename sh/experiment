@@ -1,8 +1,18 @@
 #!/bin/bash
 
-MODE=${1}
-PROJECT=${2}
+declare -a subjects=()
 
-CLASS_PATH="target/classes:target/test-classes:target/dependency/*"
+subjects=("${subjects[@]}" "commons-bcel")
+subjects=("${subjects[@]}" "commons-codec")
+subjects=("${subjects[@]}" "commons-compress")
+subjects=("${subjects[@]}" "commons-csv")
+subjects=("${subjects[@]}" "commons-digester")
+subjects=("${subjects[@]}" "commons-fileupload")
+subjects=("${subjects[@]}" "commons-math")
 
-java -Xms6400m -cp ${CLASS_PATH} jp.mzw.autoput.experiment.Prepare ${MODE} ${PROJECT}
+for subject in "${subjects[@]}"
+do
+  sh/run ${subject} detect
+  sh/run ${subject} naive-detect
+done
+sh/run anything detect-comparison
