@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -29,49 +28,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Detector {
+public class NaiveDetector extends Detector {
     protected static Logger LOGGER = LoggerFactory.getLogger(Detector.class);
-    protected Project project;
 
-    private static final String DETECT_RESULT = "detect_result.csv";
-    private static final String DETECT_DIR = "detect";
+    private static final String DETECT_RESULT = "naive_detect_result.csv";
 
-    public Detector(Project project) {
-        this.project = project;
+    public NaiveDetector(Project project) {
+        super(project);
     }
 
-    public void detect() {
-        if (!Files.exists(Paths.get(getDetectResultPath()))) {
-            try {
-                Files.createDirectories(Paths.get(getDetectResultDir()));
-                Files.createFile(Paths.get(getDetectResultPath()));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        List<String> contents = new ArrayList<>();
-        for (TestSuite testSuite : getTestSuites()) {
-            if (testSuite.getClassDeclaration() == null) {
-                continue;
-            }
-            if (testSuite.alreadyParameterized()) {
-                continue;
-            }
-            Map<MethodDeclaration, List<MethodDeclaration>> detected = _detect(testSuite);
-            for (MethodDeclaration method : detected.keySet()) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(String.join(",", testSuite.getCu().getPackage().getName().toString(), testSuite.getTestClassName(), method.getName().getIdentifier()));
-                for (MethodDeclaration similarMethod : detected.get(method)) {
-                    sb.append(",").append(similarMethod.getName().getIdentifier());
-                }
-                sb.append("\n");
-                contents.add(sb.toString());
-            }
-        }
-        _outputDetectResults(contents);
-    }
 
-    public List<CSVRecord> getDetectResults() {
+    public List<CSVRecord> getNaiveDetectResults() {
         List<CSVRecord> ret = new ArrayList<>();
         try (BufferedReader br = Files.newBufferedReader(Paths.get(getDetectResultPath()), StandardCharsets.UTF_8)) {
             CSVParser parser = CSVFormat.DEFAULT.parse(br);
@@ -82,28 +49,13 @@ public class Detector {
         return ret;
     }
 
-    public List<TestSuite> getTestSuites() {
-        project.prepare();
-        return project.getTestSuites();
-    }
-
-    private void _outputDetectResults(List<String> contents) {
-        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(getDetectResultPath()), StandardCharsets.UTF_8)) {
-            for (String content : contents) {
-                bw.write(content);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    protected String getDetectResultDir() {
-        return String.join("/", project.getOutputDir().getName(), project.getProjectId(), DETECT_DIR);
-    }
+    @Override
     protected String getDetectResultPath() {
         return String.join("/", getDetectResultDir(), DETECT_RESULT);
     }
 
+
+    @Override
     protected Map<MethodDeclaration, List<MethodDeclaration>> _detect(TestSuite testSuite) {
         int size = testSuite.getTestCases().size();
         Map<MethodDeclaration, List<MethodDeclaration>> detected = new HashMap<>();
@@ -119,7 +71,7 @@ public class Detector {
                 MethodDeclaration src = testSuite.getTestCases().get(i).getMethodDeclaration();
                 MethodDeclaration dst = testSuite.getTestCases().get(j).getMethodDeclaration();
                 // Compare the ASTs
-                if (similarAST(src, dst)) {
+                if (NaiveDetector.similarAST(src, dst)) {
                     MethodDeclaration key = testSuite.getTestCases().get(i).getMethodDeclaration();
                     List<MethodDeclaration> similarMethods = detected.get(key);
                     if (similarMethods == null) {
@@ -151,7 +103,7 @@ public class Detector {
                 MethodInvocation tmp1 = (MethodInvocation) node1;
                 MethodInvocation tmp2 = (MethodInvocation) node2;
                 if (!tmp1.getName().getIdentifier().equals(tmp2.getName().getIdentifier())) {
-                    return false;
+                    // return false;
                 }
             } else if (node1 instanceof InfixExpression) {
                 InfixExpression tmp1 = (InfixExpression) node1;
@@ -175,13 +127,13 @@ public class Detector {
                 SimpleType tmp1 = (SimpleType) node1;
                 SimpleType tmp2 = (SimpleType) node2;
                 if (!tmp1.getName().toString().equals(tmp2.getName().toString())) {
-                    return false;
+                    // return false;
                 }
             } else if (node1 instanceof ClassInstanceCreation) {
                 ClassInstanceCreation tmp1 = (ClassInstanceCreation) node1;
                 ClassInstanceCreation tmp2 = (ClassInstanceCreation) node2;
                 if (!tmp1.getType().toString().equals(tmp2.getType().toString())) {
-                    return false;
+                    // return false;
                 }
             } else if (node1 instanceof SimpleName) {
                 SimpleName tmp1 =(SimpleName) node1;
@@ -195,7 +147,7 @@ public class Detector {
                     continue;
                 }
                 if (!tmp1.getIdentifier().equals(tmp2.getIdentifier())) {
-                    return false;
+                    // return false;
                 }
             }
         }

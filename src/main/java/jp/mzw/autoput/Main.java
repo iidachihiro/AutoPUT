@@ -3,11 +3,11 @@ package jp.mzw.autoput;
 import jp.mzw.autoput.core.Project;
 
 import jp.mzw.autoput.detect.Detector;
+import jp.mzw.autoput.detect.NaiveDetector;
+import jp.mzw.autoput.experiment.DetectorComprisonExperiment;
 import jp.mzw.autoput.generate.Generator;
 import jp.mzw.autoput.requirement.RequirementChecker;
 import org.eclipse.jface.text.BadLocationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -15,7 +15,7 @@ import java.io.IOException;
  * Created by TK on 7/19/17.
  */
 public class Main {
-    protected static final String CONFIG_FILENAME = "config.properties";
+    public static final String CONFIG_FILENAME = "config.properties";
 
     public final static String PUT = "AutoPUT";
     public final static String CUT = "Original";
@@ -58,6 +58,11 @@ public class Main {
             System.out.println("detection time: " + ((detection_time - start) / 1000) + "s");
             System.out.println("generation time: " + ((generation_time + checking_time - start) / 1000) + "s");
             System.out.println("====================================");
+        } else if (command.equals("naive-detect")) {
+            NaiveDetector naiveDetector = new NaiveDetector(project);
+            naiveDetector.detect();
+        } else if (command.equals("detect-comparison")) {
+            DetectorComprisonExperiment.experiment();
         } else {
             System.out.println("Wrong Command!");
         }
