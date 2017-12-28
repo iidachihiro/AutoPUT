@@ -1,0 +1,7 @@
+org.apache.commons.fileupload.util.mime,Base64DecoderTestCase,rfc4648Section10Decode,decodeWithInnerPad,decodeTrailingJunk,nonASCIIcharacter,,,
+,Base64DecoderTestCase,decodeTrailing1,decodeTrailing2,decodeTrailing3,badPadding,badPaddingLeading1,badPaddingLeading2,badLength
+,MimeUtilityTestCase,noNeedToDecode,decodeUtf8QuotedPrintableEncoded,decodeUtf8Base64Encoded,decodeIso88591Base64Encoded,decodeIso88591Base64EncodedWithWhiteSpace,,
+,QuotedPrintableDecoderTestCase,emptyDecode,plainDecode,basicEncodeDecode,invalidQuotedPrintableEncoding,unsafeDecode,unsafeDecodeLowerCase,softLineBreakDecode
+,QuotedPrintableDecoderTestCase,invalidSoftBreak1,invalidSoftBreak2,truncatedEscape,,,,
+org.apache.commons.fileupload,DiskFileItemSerializeTest,testBelowThreshold,testThreshold,,,,,
+,DiskFileItemSerializeTest,testInvalidRepository,testInvalidRepositoryWithNullChar,,,,,

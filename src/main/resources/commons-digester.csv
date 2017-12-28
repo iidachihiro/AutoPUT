@@ -1,0 +1,8 @@
+org.apache.commons.digester3,CallMethodRuleTestCase,testCallNext,testCallRoot,
+,DTDValidationTestCase,testDigesterNoDTDValidation,testDigesterValidation,
+,SetNestedPropertiesRuleTestCase,testCustomisedProperties2a,testCustomisedProperties2b,
+,OverlappingCallMethodRuleTestCase,testItem1,testItem2,
+org.apache.commons.digester3.plugins,TestXmlRuleInfo,testXmlRuleInfoExplicitFile,testXmlRuleInfoExplicitResource,
+,TestRuleInfo,testRuleInfoExplicitClass,testRuleInfoExplicitMethod,testRuleInfoAutoDetect
+,TestLocalRules,testLocalRules,testNonStandardLocalRules,
+,TestInline,testInlineDeclaration,testLeadingSlash,
