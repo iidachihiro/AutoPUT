@@ -105,7 +105,6 @@ public class TestSuite {
             if (annotation.getTypeName().toString().equals("RunWith")
                     && (expression instanceof TypeLiteral)
                     && ((TypeLiteral) expression).getType().toString().equals("Parameterized")) {
-                System.out.println("Already Parameterized! " + testClassName);
                 return true;
             }
         }

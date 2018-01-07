@@ -36,6 +36,8 @@ public class Detector {
     private static final String DETECT_RESULT = "detect_result.csv";
     private static final String DETECT_DIR = "detect";
 
+    private static final String PARAMETERIZED_TESTS = "parameterized_tests.csv";
+
     public Detector(Project project) {
         this.project = project;
     }
@@ -49,12 +51,17 @@ public class Detector {
                 e.printStackTrace();
             }
         }
+        List<String> parameterizedTests = new ArrayList<>();
         List<String> contents = new ArrayList<>();
         for (TestSuite testSuite : getTestSuites()) {
             if (testSuite.getClassDeclaration() == null) {
                 continue;
             }
             if (testSuite.alreadyParameterized()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(String.join(",", testSuite.getCu().getPackage().getName().toString(), testSuite.getTestClassName()));
+                sb.append("\n");
+                parameterizedTests.add(sb.toString());
                 continue;
             }
             Map<MethodDeclaration, List<MethodDeclaration>> detected = _detect(testSuite);
@@ -69,6 +76,7 @@ public class Detector {
             }
         }
         _outputDetectResults(contents);
+        _outputParameterizedTests(parameterizedTests);
     }
 
     public List<CSVRecord> getDetectResults() {
@@ -97,11 +105,25 @@ public class Detector {
         }
     }
 
+    private void _outputParameterizedTests(List<String> contents) {
+        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(getParameterizedTestsPath()), StandardCharsets.UTF_8)) {
+            for (String content : contents) {
+                bw.write(content);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     protected String getDetectResultDir() {
         return String.join("/", project.getOutputDir().getName(), project.getProjectId(), DETECT_DIR);
     }
     protected String getDetectResultPath() {
         return String.join("/", getDetectResultDir(), DETECT_RESULT);
+    }
+
+    protected String getParameterizedTestsPath() {
+        return String.join("/", getDetectResultDir(), PARAMETERIZED_TESTS);
     }
 
     protected Map<MethodDeclaration, List<MethodDeclaration>> _detect(TestSuite testSuite) {

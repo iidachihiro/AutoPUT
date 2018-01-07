@@ -567,19 +567,6 @@ public class ASTUtils {
         return annotation;
     }
 
-    private static boolean _sameType(ITypeBinding binding1, ITypeBinding binding2) {
-        if (binding1 == null || binding2 == null) {
-            return false;
-        }
-        return binding1.getName().equals(binding2.getName());
-    }
-
-    private Name _getRootName(Name name) {
-        if (!(name.getParent() instanceof Name)) {
-            return name;
-        }
-        return _getRootName((Name) name.getParent());
-    }
 
     private static int countNumOfStatements(Statement statement) {
         if (statement instanceof AssertStatement) {
