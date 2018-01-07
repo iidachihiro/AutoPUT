@@ -44,6 +44,15 @@ public class ASTUtils {
         return primitiveType.getPrimitiveTypeCode().equals(PrimitiveType.VOID);
     }
 
+    public static boolean isTheoryAnnotation(Annotation annotation) {
+        if (!(annotation instanceof MarkerAnnotation)) {
+            return false;
+        }
+        MarkerAnnotation markerAnnotation = (MarkerAnnotation) annotation;
+        Name name = markerAnnotation.getTypeName();
+        return name.toString().equals("Theory");
+    }
+
     public static boolean canExtract(Expression expression) {
         if (expression instanceof BooleanLiteral) return true;
         if (expression instanceof CharacterLiteral) return true;
@@ -71,8 +80,11 @@ public class ASTUtils {
     public static MarkerAnnotation getDataPointsAnnotation(AST ast) {
         return createMarkerAnnotation(ast, "DataPoints");
     }
-    public static MarkerAnnotation getThoryAnnotation(AST ast) {
+    public static MarkerAnnotation getTheoryAnnotation(AST ast) {
         return createMarkerAnnotation(ast, "Theory");
+    }
+    public static MarkerAnnotation getTestAnnotation(AST ast) {
+        return createMarkerAnnotation(ast, "Test");
     }
 
     public static List<MethodInvocation> getAssertionMethods(ASTNode node) {
@@ -92,6 +104,21 @@ public class ASTUtils {
         node.accept(visitor);
         return visitor.getNames();
     }
+    public static List<QualifiedName> getAllQualifiedNames(ASTNode node) {
+        AllQualifiedNameVisitor visitor = new AllQualifiedNameVisitor();
+        node.accept(visitor);
+        return visitor.getQualifiedNames();
+    }
+    public static List<TypeDeclaration> getAllTypeDeclarations(ASTNode node) {
+        AllTypeDeclarationVisitor visitor = new AllTypeDeclarationVisitor();
+        node.accept(visitor);
+        return visitor.getTypeDeclarationList();
+    }
+    public static List<FieldDeclaration> getAllFieldDeclaratoins(ASTNode node) {
+        AllFieldDeclarationVisitor visitor = new AllFieldDeclarationVisitor();
+        node.accept(visitor);
+        return visitor.getFieldDeclarations();
+    }
     public static List<ASTNode> getAllNodes(ASTNode node) {
         AllElementsFindVisitor visitor = new AllElementsFindVisitor();
         node.accept(visitor);
@@ -101,6 +128,11 @@ public class ASTUtils {
         AllMethodFindVisitor visitor = new AllMethodFindVisitor();
         node.accept(visitor);
         return visitor.getFoundMethods();
+    }
+    public static List<Statement> getAllStatements(ASTNode node) {
+        AllStatementVisitor visitor = new AllStatementVisitor();
+        node.accept(visitor);
+        return visitor.getStatments();
     }
     public static List<ASTNode> getDifferentNodes(ASTNode src, ASTNode dst) {
         List<ASTNode> ret = new ArrayList<>();

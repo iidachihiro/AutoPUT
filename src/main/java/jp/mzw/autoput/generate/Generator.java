@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 public class Generator {
 
-    protected static Logger LOGGER = LoggerFactory.getLogger(Detector.class);
+    protected static Logger LOGGER = LoggerFactory.getLogger(Generator.class);
     protected Project project;
     protected Detector detector;
 

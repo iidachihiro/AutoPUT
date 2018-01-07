@@ -100,7 +100,7 @@ public class GenerateEngine {
             }
         }
         // @Theoryを追加
-        annotationRewrite.insertFirst(ASTUtils.getThoryAnnotation(ast), null);
+        annotationRewrite.insertFirst(ASTUtils.getTheoryAnnotation(ast), null);
         // 中身を追加
         _modifyTestMethod(origin);
     }

@@ -7,6 +7,7 @@ import jp.mzw.autoput.detect.NaiveDetector;
 import jp.mzw.autoput.experiment.DetectorComprisonExperiment;
 import jp.mzw.autoput.generate.Generator;
 import jp.mzw.autoput.requirement.RequirementChecker;
+import jp.mzw.autoput.revgenerate.RevGenerator;
 import org.eclipse.jface.text.BadLocationException;
 
 import java.io.IOException;
@@ -63,6 +64,9 @@ public class Main {
             naiveDetector.detect();
         } else if (command.equals("detect-comparison")) {
             DetectorComprisonExperiment.experiment();
+        } else if (command.equals("revgenerate")) {
+            RevGenerator revGenerator = new RevGenerator(project);
+            revGenerator.revgenerate();
         } else {
             System.out.println("Wrong Command!");
         }
