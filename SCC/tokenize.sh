@@ -56,8 +56,9 @@ if [ ! -d ${OUTPUT_DIR} ]; then
   for SUBJECT in "${SUBJECTS[@]}"
   do
     mkdir -p ${OUTPUT_DIR}/${SUBJECT}
-    touch ${OUTPUT_DIR}/${SUBJECT}/tokens.file
     touch ${OUTPUT_DIR}/${SUBJECT}/headers.file
+    mkdir -p ${OUTPUT_DIR}/${SUBJECT}/dataset
+    touch ${OUTPUT_DIR}/${SUBJECT}/dataset/tokens.file
   done
 fi
 
@@ -66,8 +67,9 @@ cd ${SCC_DIR}/parser/java
 
 for SUBJECT in "${SUBJECTS[@]}"
 do
-  echo ${SUBJECTS_DIR}/${SUBJECT}
+  echo ${SUBJECT}
+  # digesterだけディレクトリ構造が違うのでエラーが出る
   java -jar InputBuilderClassic.jar ${SUBJECTS_DIR}/${SUBJECT}/src/test/java/ \
-                      ${OUTPUT_DIR}/${SUBJECT}/tokens.file ${OUTPUT_DIR}/${SUBJECT}/headers.file \
+                      ${OUTPUT_DIR}/${SUBJECT}/dataset/tokens.file ${OUTPUT_DIR}/${SUBJECT}/headers.file \
                       functions java 0 0 0 0 false false false 1
 done
