@@ -60,8 +60,11 @@ public class Main {
             System.out.println("generation time: " + ((generation_time + checking_time - start) / 1000) + "s");
             System.out.println("====================================");
         } else if (command.equals("naive-detect")) {
+            long start = System.currentTimeMillis();
             NaiveDetector naiveDetector = new NaiveDetector(project);
             naiveDetector.detect();
+            long end = System.currentTimeMillis();
+            System.out.println("detection time on " + projectId + " : " + (end - start) + "ms");
         } else if (command.equals("detect-comparison")) {
             DetectorComprisonExperiment.experiment();
         } else if (command.equals("revgenerate")) {
